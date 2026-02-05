@@ -48,7 +48,7 @@ class HeartPainter extends CustomPainter {
 
     // Draw heart outline
     final outlinePaint = Paint()
-      ..color = Colors.red.withOpacity(0.3)
+      ..color = Colors.red.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
 
@@ -74,7 +74,7 @@ class HeartPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.red.withOpacity(0.9),
+            Colors.red.withValues(alpha: 0.9),
             const Color(0xFF990000),
           ],
         ).createShader(fillRect);
@@ -87,7 +87,7 @@ class HeartPainter extends CustomPainter {
     // Draw glow effect
     if (fillAmount > 0) {
       final glowPaint = Paint()
-        ..color = Colors.red.withOpacity(0.1 * fillAmount)
+        ..color = Colors.red.withValues(alpha: 0.1 * fillAmount)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
 
       canvas.drawPath(heartPath, glowPaint);

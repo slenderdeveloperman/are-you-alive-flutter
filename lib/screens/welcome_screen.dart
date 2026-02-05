@@ -61,7 +61,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   fontSize: 22,
                   fontWeight: FontWeight.w300,
                   letterSpacing: 4,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                 ),
               ),
 
@@ -76,7 +76,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       fontFamily: 'monospace',
                       fontSize: 28,
                       fontWeight: FontWeight.w400,
-                      color: Colors.red.withOpacity(0.7),
+                      color: Colors.red.withValues(alpha: 0.7),
                     ),
                   ),
                   Expanded(
@@ -102,7 +102,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               // Divider
               Container(
                 height: 1,
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
               ),
 
               const Spacer(),
@@ -117,8 +117,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: _isNameValid
-                        ? Colors.red.withOpacity(0.8)
-                        : Colors.white.withOpacity(0.1),
+                        ? Colors.red.withValues(alpha: 0.8)
+                        : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: Text(
@@ -129,7 +129,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       letterSpacing: 3,
                       color: _isNameValid
                           ? Colors.black
-                          : Colors.white.withOpacity(0.3),
+                          : Colors.white.withValues(alpha: 0.3),
                     ),
                   ),
                 ),
