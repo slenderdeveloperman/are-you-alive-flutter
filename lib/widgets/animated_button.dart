@@ -1,0 +1,105 @@
+import 'package:flutter/material.dart';
+
+/// A button widget that provides scale feedback on press and a glow pulse on release.
+///
+/// Press behavior:
+/// - Scale to 0.95 with slight opacity reduction (100ms)
+///
+/// Release behavior:
+/// - Scale back to 1.0
+/// - Red glow pulse on border that fades out (200ms)
+class AnimatedButton extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onPressed;
+  final Color glowColor;
+  final double pressedScale;
+  final Duration pressDuration;
+  final Duration glowDuration;
+
+  const AnimatedButton({
+    super.key,
+    required this.child,
+    this.onPressed,
+    this.glowColor = Colors.red,
+    this.pressedScale = 0.95,
+    this.pressDuration = const Duration(milliseconds: 100),
+    this.glowDuration = const Duration(milliseconds: 200),
+  });
+
+  @override
+  State<AnimatedButton> createState() => _AnimatedButtonState();
+}
+
+class _AnimatedButtonState extends State<AnimatedButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _glowController;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _glowController = AnimationController(
+      duration: widget.glowDuration,
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+    _glowController.forward(from: 0);
+    widget.onPressed?.call();
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onPressed != null ? _handleTapDown : null,
+      onTapUp: widget.onPressed != null ? _handleTapUp : null,
+      onTapCancel: widget.onPressed != null ? _handleTapCancel : null,
+      child: AnimatedScale(
+        scale: _isPressed ? widget.pressedScale : 1.0,
+        duration: widget.pressDuration,
+        child: AnimatedBuilder(
+          animation: _glowController,
+          builder: (context, child) {
+            // Glow intensity decreases as animation progresses
+            final glowOpacity = (1 - _glowController.value) * 0.5;
+            final glowBlur = 20 * (1 - _glowController.value);
+            final glowSpread = 2 * (1 - _glowController.value);
+
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: _glowController.value < 1
+                    ? [
+                        BoxShadow(
+                          color: widget.glowColor.withValues(alpha: glowOpacity),
+                          blurRadius: glowBlur,
+                          spreadRadius: glowSpread,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: child,
+            );
+          },
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
