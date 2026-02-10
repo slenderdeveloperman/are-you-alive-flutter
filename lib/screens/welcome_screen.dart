@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_layout.dart';
+import '../widgets/animated_button.dart';
 
 class WelcomeScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -48,7 +50,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppLayout.buttonHorizontalGutter,
+          ),
           child: Column(
             children: [
               const Spacer(),
@@ -100,36 +104,41 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
 
               // Divider
-              Container(
-                height: 1,
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
+              Container(height: 1, color: Colors.white.withValues(alpha: 0.2)),
 
               const Spacer(),
 
-              // Proceed button
-              GestureDetector(
-                onTap: _isNameValid ? _proceed : null,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _isNameValid
-                        ? Colors.red.withValues(alpha: 0.8)
-                        : Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: Text(
-                    'proceed',
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 16,
-                      letterSpacing: 3,
-                      color: _isNameValid
-                          ? Colors.black
-                          : Colors.white.withValues(alpha: 0.3),
+              // Proceed button with scale + glow animation
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppLayout.buttonMaxWidth,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: AppLayout.buttonHeight,
+                  child: AnimatedButton(
+                    onPressed: _isNameValid ? _proceed : null,
+                    glowColor: Colors.red,
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      decoration: BoxDecoration(
+                        color: _isNameValid
+                            ? Colors.red.withValues(alpha: 0.8)
+                            : Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Text(
+                        'proceed',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 16,
+                          letterSpacing: 3,
+                          color: _isNameValid
+                              ? Colors.black
+                              : Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
                     ),
                   ),
                 ),

@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
+import '../repositories/notification_repository.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -12,14 +15,26 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static const int _notificationId = 1;
-  static const Duration _inactivityDuration = Duration(hours: 39);
+  static const Duration _inactivityDuration = Duration(hours: 30);
 
   Future<void> init() async {
-    // Initialize timezone
+    // Initialize timezone database
     tz_data.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
+    // Get the device's actual timezone dynamically (works worldwide)
+    try {
+      final deviceTimeZone = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(deviceTimeZone));
+    } catch (e) {
+      // Fallback to UTC if timezone detection fails
+      debugPrint('Failed to get device timezone: $e');
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
+
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -27,7 +42,8 @@ class NotificationService {
 
     const settings = InitializationSettings(
       android: androidSettings,
-      iOS: iosSettings,
+      iOS: darwinSettings,
+      macOS: darwinSettings,
     );
 
     await _notifications.initialize(
@@ -42,20 +58,20 @@ class NotificationService {
   Future<void> _requestPermissions() async {
     // Request Android permissions
     final androidPlugin = _notifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidPlugin != null) {
       await androidPlugin.requestNotificationsPermission();
     }
 
     // Request iOS permissions
     final iosPlugin = _notifications
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (iosPlugin != null) {
-      await iosPlugin.requestPermissions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await iosPlugin.requestPermissions(alert: true, badge: true, sound: true);
     }
   }
 
@@ -65,39 +81,64 @@ class NotificationService {
   }
 
   Future<void> scheduleInactivityNotification() async {
-    // Cancel any existing notification
-    await _notifications.cancel(_notificationId);
-
-    // Schedule new notification
-    final scheduledTime = tz.TZDateTime.now(tz.local).add(_inactivityDuration);
-
-    await _notifications.zonedSchedule(
-      _notificationId,
-      'ARE YOU ALIVE?',
-      "We haven't heard from you in a while. Just checking in...",
-      scheduledTime,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'inactivity_channel',
-          'Inactivity Notifications',
-          channelDescription: 'Notifications when you have not opened the app',
-          importance: Importance.high,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+    // Save timestamp FIRST - countdown should work even if notifications fail
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      'lastActiveTimestamp',
+      DateTime.now().millisecondsSinceEpoch,
     );
 
-    // Save timestamp
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('lastActiveTimestamp', DateTime.now().millisecondsSinceEpoch);
+    var body = 'Open now to read your eulogy';
+    try {
+      body = await NotificationRepository().nextThirtyHourMessage();
+    } catch (e) {
+      debugPrint('Failed to load shuffled notification message: $e');
+    }
+
+    // Try to schedule notification (may fail due to permissions)
+    try {
+      // Cancel any existing notification
+      await _notifications.cancel(_notificationId);
+
+      // Schedule new notification
+      final scheduledTime = tz.TZDateTime.now(
+        tz.local,
+      ).add(_inactivityDuration);
+
+      await _notifications.zonedSchedule(
+        _notificationId,
+        'ARE YOU ALIVE?',
+        body,
+        scheduledTime,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'inactivity_channel',
+            'Inactivity Notifications',
+            channelDescription:
+                'Notifications when you have not opened the app',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+          macOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      // Notification scheduling failed (permissions, etc.)
+      // The countdown timer will still work since we saved the timestamp above
+      debugPrint('Failed to schedule notification: $e');
+    }
   }
 
   Future<void> cancelNotification() async {
