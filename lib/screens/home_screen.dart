@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'badges_screen.dart';
 import '../widgets/heart_painter.dart';
 import '../widgets/animated_button.dart';
-import '../widgets/cylindrical_badge_chip.dart';
+import '../widgets/bottom_action_pill.dart';
 import '../widgets/typewriter_text.dart';
+import '../widgets/are_you_alive_loop.dart';
+import '../widgets/glitch_text.dart';
+import '../widgets/heart_particles.dart';
 import '../models/badge_models.dart';
 import '../repositories/timer_message_repository.dart';
 import '../services/badge_service.dart';
@@ -37,7 +39,10 @@ class _HomeScreenState extends State<HomeScreen>
   String _userName = '';
   bool _hasCheckedIn = false;
   int _streakCount = 0;
+  int _previousStreak = 0; // For streak count-up animation
+  bool _streakJustChanged = false; // For scale pop animation
   int _checkInsSinceDeath = 3; // Start at 3 (fully healed) for new users
+  bool _isCheckingIn = false; // For heart particle burst
 
   late AnimationController _heartbeatController;
   late Animation<double> _heartbeatAnimation;
@@ -82,9 +87,11 @@ class _HomeScreenState extends State<HomeScreen>
     // Check if user has already checked in today
     final hasCheckedInToday = await _hasCheckedInToday();
 
+    final loadedStreak = prefs.getInt('streakCount') ?? 0;
     setState(() {
       _userName = prefs.getString('userName') ?? 'human';
-      _streakCount = prefs.getInt('streakCount') ?? 0;
+      _previousStreak = loadedStreak; // Set both to same value on initial load
+      _streakCount = loadedStreak;
       _checkInsSinceDeath = prefs.getInt('checkInsSinceDeath') ?? 3;
       _hasCheckedIn = hasCheckedInToday; // Set based on calendar day
       _activeDayKey = _dateOnly(_now());
@@ -212,8 +219,20 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       setState(() {
+        _previousStreak = currentStreak; // Old value for count-up animation
         _streakCount = currentStreak + 1;
+        _streakJustChanged = true; // Trigger scale pop
         _checkInsSinceDeath = (currentHealing + 1).clamp(0, 3);
+      });
+
+      // Reset scale pop flag after animation completes
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() {
+            _streakJustChanged = false;
+            _previousStreak = _streakCount; // Sync for next animation
+          });
+        }
       });
     }
   }
@@ -221,9 +240,19 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _onCheckIn() async {
     setState(() {
       _hasCheckedIn = true;
+      _isCheckingIn = true; // Trigger particle burst
       _activeDayKey = _dateOnly(_now());
     });
     _applyHeartbeatPhase(_HeartbeatPhase.normal);
+
+    // Reset particle trigger after burst completes
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isCheckingIn = false;
+        });
+      }
+    });
 
     // Start shake animation, then transition to heartbeat
     _shakeController.forward().then((_) {
@@ -520,57 +549,6 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Widget _buildShareButton() {
-    return Semantics(
-      button: true,
-      label: 'Share progress',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _openShareSheet,
-          borderRadius: BorderRadius.circular(14),
-          child: Ink(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-            ),
-            child: const Icon(Icons.share_outlined, color: Colors.white),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBuiltByButton() {
-    return Tooltip(
-      message: 'Built by @slndrtweeterman',
-      child: Semantics(
-        button: true,
-        label: 'Built by slndrtweeterman',
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _openBuiltByProfile,
-            borderRadius: BorderRadius.circular(14),
-            child: Ink(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-              ),
-              child: const Icon(Icons.alternate_email, color: Colors.white),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -687,15 +665,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final titleHeight = (screenWidth * 0.105).clamp(34.0, 52.0).toDouble();
-    final titleContainerHeight = (titleHeight + 8).toDouble();
-    final badgeTopOffset = (titleContainerHeight * 0.05).toDouble();
-    final badgeMaxWidth = (screenWidth * 0.36).clamp(128.0, 196.0).toDouble();
-    final headerHorizontalPadding = (screenWidth * 0.045)
-        .clamp(14.0, 22.0)
-        .toDouble();
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -703,105 +672,10 @@ class _HomeScreenState extends State<HomeScreen>
           SafeArea(
             child: Column(
               children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    headerHorizontalPadding,
-                    3,
-                    headerHorizontalPadding,
-                    0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        height: titleContainerHeight,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.center,
-                          children: [
-                            Opacity(
-                              opacity: 0.2,
-                              child: ImageFiltered(
-                                imageFilter: ImageFilter.blur(
-                                  sigmaX: 1.2,
-                                  sigmaY: 1.2,
-                                ),
-                                child: ColorFiltered(
-                                  colorFilter: const ColorFilter.matrix(
-                                    <double>[
-                                      -1,
-                                      0,
-                                      0,
-                                      0,
-                                      255,
-                                      0,
-                                      -1,
-                                      0,
-                                      0,
-                                      255,
-                                      0,
-                                      0,
-                                      -1,
-                                      0,
-                                      255,
-                                      0,
-                                      0,
-                                      0,
-                                      1,
-                                      0,
-                                    ],
-                                  ),
-                                  child: Image.asset(
-                                    _homeTitleAsset,
-                                    height: titleHeight,
-                                    fit: BoxFit.contain,
-                                    filterQuality: FilterQuality.medium,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            ColorFiltered(
-                              colorFilter: const ColorFilter.matrix(<double>[
-                                -1,
-                                0,
-                                0,
-                                0,
-                                255,
-                                0,
-                                -1,
-                                0,
-                                0,
-                                255,
-                                0,
-                                0,
-                                -1,
-                                0,
-                                255,
-                                0,
-                                0,
-                                0,
-                                1,
-                                0,
-                              ]),
-                              child: Image.asset(
-                                _homeTitleAsset,
-                                height: titleHeight,
-                                fit: BoxFit.contain,
-                                filterQuality: FilterQuality.medium,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-
-                // Heart and button/message positioned slightly above center
+                // Heart and button/message positioned higher on screen
                 Expanded(
                   child: Align(
-                    alignment: const Alignment(0, -0.38),
+                    alignment: const Alignment(0, -0.55),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -821,27 +695,58 @@ class _HomeScreenState extends State<HomeScreen>
                                                 ? _erraticScaleMultiplier
                                                 : 1.0))
                                         .clamp(0.8, 1.05),
-                                child: CustomPaint(
-                                  size: const Size(150, 150),
-                                  painter: HeartPainter(
-                                    fillAmount: 1.0,
-                                    isActive: _hasCheckedIn,
-                                    decayLevel: _decayLevel,
-                                  ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    CustomPaint(
+                                      size: const Size(150, 150),
+                                      painter: HeartPainter(
+                                        fillAmount: 1.0,
+                                        isActive: _hasCheckedIn,
+                                        decayLevel: _decayLevel,
+                                      ),
+                                    ),
+                                    // Particle overlay
+                                    HeartParticles(
+                                      heartSize: const Size(150, 150),
+                                      isCheckingIn: _isCheckingIn,
+                                      decayLevel: _decayLevel,
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
                           },
                         ),
                         const SizedBox(height: 20),
-                        Text(
-                          '$_streakCount ${_streakCount == 1 ? 'day' : 'days'} alive',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.74),
-                            letterSpacing: 0.4,
-                          ),
+                        TweenAnimationBuilder<int>(
+                          tween: IntTween(begin: _previousStreak, end: _streakCount),
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, value, child) {
+                            return TweenAnimationBuilder<double>(
+                              tween: Tween(
+                                begin: 1.0,
+                                end: _streakJustChanged ? 1.15 : 1.0,
+                              ),
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOut,
+                              builder: (context, scale, _) {
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: Text(
+                                    '$value ${value == 1 ? 'day' : 'days'} alive',
+                                    style: TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 14,
+                                      color: Colors.white.withValues(alpha: 0.74),
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 20),
@@ -922,14 +827,16 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(height: 12),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 30),
-                            child: Text.rich(
-                              key: const ValueKey('timer-message-rich-text'),
-                              _buildTimerMessageSpan(
+                            child: GlitchText(
+                              key: const ValueKey('timer-message-glitch'),
+                              textSpan: _buildTimerMessageSpan(
                                 _timerMessage.isNotEmpty
                                     ? _timerMessage
                                     : _fallbackTimerMessage(),
                               ),
                               textAlign: TextAlign.center,
+                              glitchInterval: const Duration(seconds: 3),
+                              glitchDuration: const Duration(milliseconds: 80),
                             ),
                           ),
 
@@ -954,32 +861,29 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
+          // Animated "ARE YOU ALIVE?" loop positioned above the bottom pill
           Positioned(
-            left: 16,
-            bottom: 16 + MediaQuery.of(context).padding.bottom,
-            child: _buildShareButton(),
-          ),
-          Positioned(
-            right: 16,
-            bottom: 16 + MediaQuery.of(context).padding.bottom,
-            child: _buildBuiltByButton(),
+            left: 0,
+            right: 0,
+            bottom: 120 + MediaQuery.of(context).padding.bottom,
+            child: const Center(
+              child: SizedBox(
+                height: 450,
+                child: AreYouAliveLoop(),
+              ),
+            ),
           ),
           if (_badgeSnapshot != null)
             Positioned(
               left: 0,
               right: 0,
-              bottom: 16 + MediaQuery.of(context).padding.bottom + badgeTopOffset,
+              bottom: 16 + MediaQuery.of(context).padding.bottom,
               child: Center(
-                child: GestureDetector(
-                  onTap: _openBadgesScreen,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: badgeMaxWidth),
-                    child: CylindricalBadgeChip(
-                      key: const ValueKey('current-badge-chip'),
-                      badge: _currentBadge(_badgeSnapshot!),
-                      compact: true,
-                    ),
-                  ),
+                child: BottomActionPill(
+                  key: const ValueKey('bottom-action-pill'),
+                  onShareTap: _openShareSheet,
+                  onBadgeTap: _openBadgesScreen,
+                  onBuilderTap: _openBuiltByProfile,
                 ),
               ),
             ),

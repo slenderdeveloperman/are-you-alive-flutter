@@ -7,16 +7,71 @@ class CylindricalBadgeChip extends StatelessWidget {
     super.key,
     required this.badge,
     this.compact = false,
+    this.iconOnly = false,
   });
 
   final BadgeProgress badge;
   final bool compact;
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
+    final palette = _palette(badge);
+
+    // Icon-only mode: circular badge with just the icon
+    if (iconOnly) {
+      const size = 56.0;
+      final radius = BorderRadius.circular(size / 2);
+
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          boxShadow: [
+            BoxShadow(
+              color: palette.glow.withValues(alpha: 0.22),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [palette.top, palette.middle, palette.bottom],
+              ),
+              border: Border.all(color: palette.stroke.withValues(alpha: 0.8)),
+              borderRadius: radius,
+            ),
+            child: Stack(
+              children: [
+                const Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: TerminalTexturePainter()),
+                  ),
+                ),
+                Center(
+                  child: Icon(
+                    _iconForBadge(badge.definition.id),
+                    size: 24,
+                    color: palette.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Standard chip mode (compact or full)
     final height = compact ? 36.0 : 44.0;
     final radius = BorderRadius.circular(height / 2);
-    final palette = _palette(badge);
 
     return DecoratedBox(
       decoration: BoxDecoration(
