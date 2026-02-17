@@ -134,6 +134,12 @@ class ProgressShareCard extends StatelessWidget {
           lineGap: (height * 0.012).clamp(5.0, 8.0).toDouble(),
         );
       case ShareTheme.battery:
+        return _TextZone(
+          horizontalInset: horizontalInset,
+          topInset: (height * 0.70).clamp(310.0, 500.0).toDouble(),
+          bottomInset: (height * 0.10).clamp(50.0, 90.0).toDouble(),
+          lineGap: (height * 0.014).clamp(6.0, 10.0).toDouble(),
+        );
       case ShareTheme.timeServed:
       case ShareTheme.proofOfLife:
         return _TextZone(
