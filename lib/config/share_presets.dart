@@ -3,7 +3,7 @@ import '../models/share_models.dart';
 const List<SharePreset> sharePresets = <SharePreset>[
   SharePreset(
     id: 'certificate_of_participation',
-    title: 'Battery',
+    title: 'Certificate',
     description: 'Existential battery artwork',
     theme: ShareTheme.certificate,
     thumbnailAssetPath: 'assets/share_presets/certificate_preset.png',
@@ -25,7 +25,7 @@ const List<SharePreset> sharePresets = <SharePreset>[
   ),
   SharePreset(
     id: 'existential_battery',
-    title: 'Certificate',
+    title: 'Battery',
     description: 'Participation certificate artwork',
     theme: ShareTheme.battery,
     thumbnailAssetPath: 'assets/share_presets/battery_preset.png',
