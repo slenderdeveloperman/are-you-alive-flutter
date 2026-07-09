@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/date_utils.dart';
 
 class TimerMessageRepository {
   static final TimerMessageRepository _instance =
@@ -25,7 +26,7 @@ class TimerMessageRepository {
     DateTime? now,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final date = _dateOnly(now ?? DateTime.now());
+    final date = dateOnly(now ?? DateTime.now());
 
     var order = prefs.getStringList(_orderKey);
     var index = prefs.getInt(_indexKey);
@@ -80,12 +81,5 @@ class TimerMessageRepository {
     return template
         .replaceAll('[Name]', safeName)
         .replaceAll('X', countdownText);
-  }
-
-  String _dateOnly(DateTime value) {
-    final year = value.year.toString().padLeft(4, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
   }
 }

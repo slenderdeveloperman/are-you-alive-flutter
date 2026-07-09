@@ -17,6 +17,7 @@ import '../services/badge_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_layout.dart';
 import '../models/share_models.dart';
+import '../utils/date_utils.dart';
 import '../widgets/share_preset_sheet.dart';
 
 enum _HeartbeatPhase { inactive, normal, erratic, expired }
@@ -72,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    _activeDayKey = _dateOnly(_now());
+    _activeDayKey = dateOnly(_now());
     WidgetsBinding.instance.addObserver(this);
     _loadUserData();
     _setupAnimation();
@@ -92,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen>
       _streakCount = loadedStreak;
       _checkInsSinceDeath = prefs.getInt('checkInsSinceDeath') ?? 3;
       _hasCheckedIn = hasCheckedInToday; // Set based on calendar day
-      _activeDayKey = _dateOnly(_now());
+      _activeDayKey = dateOnly(_now());
     });
     await _refreshBadgeSnapshot();
     await _refreshDailyTimerMessage(force: true);
@@ -101,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// Determines if the user has already checked in today
   Future<bool> _hasCheckedInToday() async {
     final prefs = await SharedPreferences.getInstance();
-    final today = _now().toIso8601String().substring(0, 10); // "YYYY-MM-DD"
+    final today = dateOnly(_now());
     final lastCheckInDate = prefs.getString('lastCheckInDate');
 
     return lastCheckInDate == today;
@@ -202,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// Increment streak if this is the first check-in of the day
   Future<void> _incrementStreakIfNewDay() async {
     final prefs = await SharedPreferences.getInstance();
-    final today = _now().toIso8601String().substring(0, 10); // "YYYY-MM-DD"
+    final today = dateOnly(_now());
     final lastCheckInDate = prefs.getString('lastCheckInDate');
 
     if (lastCheckInDate != today) {
@@ -239,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _hasCheckedIn = true;
       _isCheckingIn = true; // Trigger particle burst
-      _activeDayKey = _dateOnly(_now());
+      _activeDayKey = dateOnly(_now());
     });
     _applyHeartbeatPhase(_HeartbeatPhase.normal);
 
@@ -301,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _calculateRemainingTime() {
     final now = _now();
-    final today = _dateOnly(now);
+    final today = dateOnly(now);
     final dayChanged = today != _activeDayKey;
     if (dayChanged) {
       _activeDayKey = today;
@@ -354,13 +355,6 @@ class _HomeScreenState extends State<HomeScreen>
     final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
     return '$hours:$minutes:$seconds';
-  }
-
-  String _dateOnly(DateTime value) {
-    final year = value.year.toString().padLeft(4, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
   }
 
   String _fallbackTimerMessage() {
@@ -459,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _refreshDailyTimerMessage({bool force = false}) async {
     final now = _now();
-    final today = _dateOnly(now);
+    final today = dateOnly(now);
     if (!force && _lastTimerMessageDate == today && _timerMessage.isNotEmpty) {
       return;
     }

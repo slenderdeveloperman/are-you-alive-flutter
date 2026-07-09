@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/badge_models.dart';
+import '../utils/date_utils.dart';
 import 'metrics_schema_service.dart';
 
 class AppOpenTrackerService {
@@ -16,7 +17,7 @@ class AppOpenTrackerService {
     await MetricsSchemaService().ensureCurrent();
     final prefs = await SharedPreferences.getInstance();
     final buckets = _loadBuckets(prefs);
-    final key = _dateKey(now);
+    final key = dateOnly(now);
 
     buckets[key] = (buckets[key] ?? 0) + 1;
     _pruneBuckets(buckets, now);
@@ -33,7 +34,7 @@ class AppOpenTrackerService {
     _pruneBuckets(buckets, now);
     await prefs.setString(_dailyBucketsKey, jsonEncode(buckets));
 
-    final todayKey = _dateKey(now);
+    final todayKey = dateOnly(now);
     final today = buckets[todayKey] ?? 0;
 
     final startOfWeek = _startOfWeek(now);
@@ -102,13 +103,6 @@ class AppOpenTrackerService {
     final today = DateTime(now.year, now.month, now.day);
     final daysFromMonday = today.weekday - DateTime.monday;
     return today.subtract(Duration(days: daysFromMonday));
-  }
-
-  String _dateKey(DateTime value) {
-    final year = value.year.toString().padLeft(4, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
   }
 
   DateTime? _parseDate(String value) {
