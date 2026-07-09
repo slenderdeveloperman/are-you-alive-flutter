@@ -67,6 +67,7 @@ class _AnimatedButtonState extends State<AnimatedButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTapDown: widget.onPressed != null ? _handleTapDown : null,
       onTapUp: widget.onPressed != null ? _handleTapUp : null,
       onTapCancel: widget.onPressed != null ? _handleTapCancel : null,

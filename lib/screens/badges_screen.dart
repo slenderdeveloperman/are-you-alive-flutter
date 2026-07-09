@@ -102,6 +102,7 @@ class _BadgeGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Center(
         child: CylindricalBadgeChip(
           badge: badge,
