@@ -8,6 +8,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 import 'package:are_you_alive_flutter/main.dart';
 import 'package:are_you_alive_flutter/screens/home_screen.dart';
 import 'package:are_you_alive_flutter/screens/splash_screen.dart';
+import 'package:are_you_alive_flutter/widgets/are_you_alive_loop.dart';
 import 'package:are_you_alive_flutter/widgets/typewriter_text.dart';
 
 Iterable<TextSpan> _flattenTextSpans(InlineSpan span) sync* {
@@ -88,16 +89,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   });
 
-  testWidgets('Current badge opens badges screen', (WidgetTester tester) async {
+  testWidgets('Badges icon opens badges screen', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
 
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
 
-    final currentBadgeFinder = find.byKey(const ValueKey('current-badge-chip'));
-    expect(currentBadgeFinder, findsOneWidget);
+    final badgesIconFinder = find.byIcon(Icons.military_tech);
+    expect(badgesIconFinder, findsOneWidget);
 
-    await tester.tap(currentBadgeFinder);
+    await tester.tap(badgesIconFinder);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -105,12 +106,13 @@ void main() {
     expect(find.textContaining('unlocked'), findsWidgets);
   });
 
-  testWidgets('Splash image uses contain fit', (WidgetTester tester) async {
+  testWidgets('Splash screen renders spiral animation', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(MaterialApp(home: SplashScreen(onComplete: () {})));
     await tester.pump();
 
-    final imageWidget = tester.widget<Image>(find.byType(Image));
-    expect(imageWidget.fit, BoxFit.cover);
+    expect(find.byType(CustomPaint), findsWidgets);
   });
 
   testWidgets('Pre-check-in state hides timer and message', (
@@ -132,7 +134,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1200));
 
     expect(find.byKey(const ValueKey('check-in-button')), findsOneWidget);
-    expect(find.byKey(const ValueKey('timer-message-rich-text')), findsNothing);
+    expect(find.byKey(const ValueKey('timer-message-glitch')), findsNothing);
   });
 
   testWidgets(
@@ -155,12 +157,20 @@ void main() {
         MaterialApp(home: HomeScreen(nowProvider: () => fakeNow)),
       );
       await tester.pump(const Duration(milliseconds: 2500));
+      // A second pump lets the streak-count TweenAnimationBuilder (600ms)
+      // finish animating from its default 0 to the loaded streak value,
+      // since the underlying setState only lands mid-way through the first
+      // pump's single simulated frame.
+      await tester.pump(const Duration(milliseconds: 700));
 
       expect(find.textContaining('day alive'), findsOneWidget);
       expect(find.byKey(const ValueKey('live-countdown-text')), findsNothing);
 
-      final richTextFinder = find.byKey(
-        const ValueKey('timer-message-rich-text'),
+      final glitchFinder = find.byKey(const ValueKey('timer-message-glitch'));
+      expect(glitchFinder, findsOneWidget);
+      final richTextFinder = find.descendant(
+        of: glitchFinder,
+        matching: find.byType(Text),
       );
       expect(richTextFinder, findsOneWidget);
 
@@ -213,14 +223,18 @@ void main() {
       MaterialApp(home: HomeScreen(nowProvider: () => fakeNow)),
     );
     await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump();
 
-    expect(find.byKey(const ValueKey('timer-message-rich-text')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('timer-message-glitch')),
+      findsOneWidget,
+    );
 
     fakeNow = DateTime(2026, 2, 10, 0, 0, 1);
     await tester.pump(const Duration(seconds: 2));
 
     expect(find.byKey(const ValueKey('check-in-button')), findsOneWidget);
-    expect(find.byKey(const ValueKey('timer-message-rich-text')), findsNothing);
+    expect(find.byKey(const ValueKey('timer-message-glitch')), findsNothing);
   });
 
   testWidgets('Bottom action buttons render with semantics labels', (
@@ -229,17 +243,18 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump(const Duration(milliseconds: 1200));
 
-    expect(find.bySemanticsLabel('Share progress'), findsOneWidget);
-    expect(find.bySemanticsLabel('Built by slndrtweeterman'), findsOneWidget);
+    expect(find.bySemanticsLabel('Share'), findsOneWidget);
+    expect(find.bySemanticsLabel('Badges'), findsOneWidget);
+    expect(find.bySemanticsLabel('Builder'), findsOneWidget);
   });
 
-  testWidgets('Built-by button opens X profile externally', (
+  testWidgets('Builder button opens X profile externally', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump(const Duration(milliseconds: 1200));
 
-    await tester.tap(find.byIcon(Icons.alternate_email));
+    await tester.tap(find.byIcon(Icons.build));
     await tester.pump();
 
     expect(fakeUrlLauncher.launchedUrl, 'https://x.com/slndrtweeterman');
@@ -249,16 +264,80 @@ void main() {
     );
   });
 
-  testWidgets('Built-by button shows snackbar when profile launch fails', (
+  testWidgets('Builder button shows snackbar when profile launch fails', (
     WidgetTester tester,
   ) async {
     fakeUrlLauncher.launchResult = false;
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump(const Duration(milliseconds: 1200));
 
-    await tester.tap(find.byIcon(Icons.alternate_email));
+    await tester.tap(find.byIcon(Icons.build));
     await tester.pump();
 
     expect(find.text('Could not open profile.'), findsOneWidget);
+  });
+
+  testWidgets('Check-in button responds to tap and reveals post-check-in UI', (
+    WidgetTester tester,
+  ) async {
+    final yesterday = DateTime.now()
+        .subtract(const Duration(days: 1))
+        .toIso8601String()
+        .substring(0, 10);
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'lastActiveTimestamp': DateTime.now().millisecondsSinceEpoch,
+      'streakCount': 1,
+      'hasCompletedOnboarding': true,
+      'hasSeenOnboarding': true,
+      'lastCheckInDate': yesterday,
+    });
+
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    expect(find.byKey(const ValueKey('check-in-button')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('check-in-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byKey(const ValueKey('check-in-button')), findsNothing);
+    expect(find.byKey(const ValueKey('timer-message-glitch')), findsOneWidget);
+    expect(find.byKey(const ValueKey('typewriter-tomorrow')), findsOneWidget);
+
+    // Flush delayed streak animation timer started during check-in.
+    await tester.pump(const Duration(milliseconds: 900));
+  });
+
+  testWidgets('Loop sits above bottom pill and does not capture pointers', (
+    WidgetTester tester,
+  ) async {
+    final yesterday = DateTime.now()
+        .subtract(const Duration(days: 1))
+        .toIso8601String()
+        .substring(0, 10);
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'lastActiveTimestamp': DateTime.now().millisecondsSinceEpoch,
+      'streakCount': 1,
+      'hasCompletedOnboarding': true,
+      'hasSeenOnboarding': true,
+      'lastCheckInDate': yesterday,
+    });
+
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    final loopFinder = find.byType(AreYouAliveLoop);
+    final pillFinder = find.byKey(const ValueKey('bottom-action-pill'));
+    expect(loopFinder, findsOneWidget);
+    expect(pillFinder, findsOneWidget);
+
+    final loopBottom = tester.getBottomLeft(loopFinder).dy;
+    final pillTop = tester.getTopLeft(pillFinder).dy;
+    expect(loopBottom, lessThan(pillTop));
+
+    final ignorePointerFinder = find.byType(IgnorePointer);
+    final ignorePointerWidgets =
+        tester.widgetList<IgnorePointer>(ignorePointerFinder).toList();
+    expect(ignorePointerWidgets.any((widget) => widget.ignoring), isTrue);
   });
 }

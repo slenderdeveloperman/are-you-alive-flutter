@@ -34,8 +34,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   static final Uri _builtByUri = Uri.parse('https://x.com/slndrtweeterman');
-  static const String _homeTitleAsset =
-      'assets/title/home_title_handwritten.png';
   String _userName = '';
   bool _hasCheckedIn = false;
   int _streakCount = 0;
@@ -492,22 +490,6 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  BadgeProgress _currentBadge(BadgeSnapshot snapshot) {
-    final earnedBadges = snapshot.badges
-        .where((badge) => badge.earned)
-        .toList();
-    if (earnedBadges.isNotEmpty) {
-      earnedBadges.sort(
-        (a, b) => (b.earnedAtMs ?? 0).compareTo(a.earnedAtMs ?? 0),
-      );
-      return earnedBadges.first;
-    }
-
-    return snapshot.badges.reduce((best, badge) {
-      return badge.progress > best.progress ? badge : best;
-    });
-  }
-
   void _openBadgesScreen() {
     final snapshot = _badgeSnapshot;
     if (snapshot == null) return;
@@ -861,15 +843,18 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-          // Animated "ARE YOU ALIVE?" loop positioned above the bottom pill
+          // Animated "ARE YOU ALIVE?" loop positioned just above the bottom pill
           Positioned(
             left: 0,
             right: 0,
-            bottom: 120 + MediaQuery.of(context).padding.bottom,
-            child: const Center(
-              child: SizedBox(
-                height: 450,
-                child: AreYouAliveLoop(),
+            bottom: 88 + MediaQuery.of(context).padding.bottom,
+            child: const IgnorePointer(
+              ignoring: true,
+              child: Center(
+                child: SizedBox(
+                  height: 96,
+                  child: AreYouAliveLoop(),
+                ),
               ),
             ),
           ),

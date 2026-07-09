@@ -31,6 +31,7 @@ class NotificationRepository {
     final needsFreshShuffle =
         order == null ||
         order.length != _thirtyHourMessages.length ||
+        index < 0 ||
         index >= order.length;
 
     if (needsFreshShuffle) {

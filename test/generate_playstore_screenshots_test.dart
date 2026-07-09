@@ -14,23 +14,25 @@ import 'package:are_you_alive_flutter/widgets/badge_summary_card.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Generate Play Store screenshots for phone and tablet', (
-    tester,
-  ) async {
-    await _generateForDevice(
-      tester,
-      deviceName: 'phone',
-      size: const Size(360, 640),
-      safePadding: const EdgeInsets.only(top: 44, bottom: 24),
-    );
+  testWidgets(
+    'Generate Play Store screenshots for phone and tablet',
+    tags: 'manual',
+    (tester) async {
+      await _generateForDevice(
+        tester,
+        deviceName: 'phone',
+        size: const Size(360, 640),
+        safePadding: const EdgeInsets.only(top: 44, bottom: 24),
+      );
 
-    await _generateForDevice(
-      tester,
-      deviceName: 'tablet',
-      size: const Size(800, 1280),
-      safePadding: const EdgeInsets.only(top: 36, bottom: 24),
-    );
-  });
+      await _generateForDevice(
+        tester,
+        deviceName: 'tablet',
+        size: const Size(800, 1280),
+        safePadding: const EdgeInsets.only(top: 36, bottom: 24),
+      );
+    },
+  );
 }
 
 Future<void> _generateForDevice(

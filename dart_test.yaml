@@ -1,0 +1,4 @@
+# Tests tagged 'manual' are excluded from the default `flutter test` run.
+# They're dev tools (e.g. screenshot generation) or slow/environment-dependent
+# checks meant to be run explicitly with `flutter test --tags manual`.
+exclude_tags: manual
