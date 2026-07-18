@@ -31,12 +31,13 @@ Future<void> _settleHome(WidgetTester tester) async {
 }
 
 /// AppRouter always shows SplashScreen first. SplashScreen's spiral
-/// animation advances its internal frame counters by one fixed increment
-/// per pump() call (via an AnimationController listener), not by simulated
-/// elapsed time - so a couple of large-duration pumps do NOT get past it.
-/// Getting through the full spiralIn -> pause -> textOut -> hold ->
-/// resetPause sequence takes roughly 746 ticks; pump generously past that,
-/// then let the destination screen's own async init settle.
+/// animation advances its internal state by real elapsed time (measured via
+/// AnimationController.lastElapsedDuration), so pumping in many small steps
+/// - rather than one or two large-duration pumps - keeps each frame's delta
+/// bounded the way a real device would produce it. Getting through the full
+/// spiralIn -> pause -> textOut -> hold -> resetPause sequence takes a bit
+/// over 7.5 simulated seconds; pump generously past that, then let the
+/// destination screen's own async init settle.
 Future<void> _skipSplashAndSettle(WidgetTester tester) async {
   for (var i = 0; i < 800; i++) {
     await tester.pump(const Duration(milliseconds: 16));
