@@ -33,6 +33,7 @@ class AnimatedButton extends StatefulWidget {
 class _AnimatedButtonState extends State<AnimatedButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _glowController;
+  late Animation<double> _glowAnimation;
   bool _isPressed = false;
 
   @override
@@ -41,6 +42,10 @@ class _AnimatedButtonState extends State<AnimatedButton>
     _glowController = AnimationController(
       duration: widget.glowDuration,
       vsync: this,
+    );
+    _glowAnimation = CurvedAnimation(
+      parent: _glowController,
+      curve: Curves.easeOut,
     );
   }
 
@@ -74,18 +79,19 @@ class _AnimatedButtonState extends State<AnimatedButton>
       child: AnimatedScale(
         scale: _isPressed ? widget.pressedScale : 1.0,
         duration: widget.pressDuration,
+        curve: Curves.easeOut,
         child: AnimatedBuilder(
-          animation: _glowController,
+          animation: _glowAnimation,
           builder: (context, child) {
-            // Glow intensity decreases as animation progresses
-            final glowOpacity = (1 - _glowController.value) * 0.5;
-            final glowBlur = 20 * (1 - _glowController.value);
-            final glowSpread = 2 * (1 - _glowController.value);
+            // Glow intensity decreases as animation progresses (eased)
+            final glowOpacity = (1 - _glowAnimation.value) * 0.5;
+            final glowBlur = 20 * (1 - _glowAnimation.value);
+            final glowSpread = 2 * (1 - _glowAnimation.value);
 
             return Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                boxShadow: _glowController.value < 1
+                boxShadow: _glowAnimation.value < 1
                     ? [
                         BoxShadow(
                           color: widget.glowColor.withValues(alpha: glowOpacity),
