@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import '../theme/motion_tokens.dart';
+
 /// A widget that displays a TextSpan with occasional "glitch" effects
 /// where random characters are briefly replaced with symbols.
 class GlitchText extends StatefulWidget {
@@ -67,6 +69,10 @@ class _GlitchTextState extends State<GlitchText> {
 
   void _scheduleNextGlitch() {
     _glitchTimer?.cancel();
+
+    if (MotionTokens.reducedMotion) {
+      return; // Reduced motion: skip the purely decorative glitch effect.
+    }
 
     // Randomize interval: 2-4 seconds around the base interval
     final variance = widget.glitchInterval.inMilliseconds ~/ 2;
