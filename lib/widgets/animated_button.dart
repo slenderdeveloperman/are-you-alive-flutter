@@ -16,6 +16,11 @@ class AnimatedButton extends StatefulWidget {
   final Duration pressDuration;
   final Duration glowDuration;
 
+  /// Whether the release glow pulse plays. The glow is the check-in CTA's
+  /// identity marker — disable it for lighter-weight tap targets (icon
+  /// buttons, grid items) that just need press-scale feedback.
+  final bool enableGlow;
+
   const AnimatedButton({
     super.key,
     required this.child,
@@ -24,6 +29,7 @@ class AnimatedButton extends StatefulWidget {
     this.pressedScale = 0.95,
     this.pressDuration = const Duration(milliseconds: 100),
     this.glowDuration = const Duration(milliseconds: 200),
+    this.enableGlow = true,
   });
 
   @override
@@ -61,7 +67,9 @@ class _AnimatedButtonState extends State<AnimatedButton>
 
   void _handleTapUp(TapUpDetails details) {
     setState(() => _isPressed = false);
-    _glowController.forward(from: 0);
+    if (widget.enableGlow) {
+      _glowController.forward(from: 0);
+    }
     widget.onPressed?.call();
   }
 
@@ -80,32 +88,36 @@ class _AnimatedButtonState extends State<AnimatedButton>
         scale: _isPressed ? widget.pressedScale : 1.0,
         duration: widget.pressDuration,
         curve: Curves.easeOut,
-        child: AnimatedBuilder(
-          animation: _glowAnimation,
-          builder: (context, child) {
-            // Glow intensity decreases as animation progresses (eased)
-            final glowOpacity = (1 - _glowAnimation.value) * 0.5;
-            final glowBlur = 20 * (1 - _glowAnimation.value);
-            final glowSpread = 2 * (1 - _glowAnimation.value);
+        child: !widget.enableGlow
+            ? widget.child
+            : AnimatedBuilder(
+                animation: _glowAnimation,
+                builder: (context, child) {
+                  // Glow intensity decreases as animation progresses (eased)
+                  final glowOpacity = (1 - _glowAnimation.value) * 0.5;
+                  final glowBlur = 20 * (1 - _glowAnimation.value);
+                  final glowSpread = 2 * (1 - _glowAnimation.value);
 
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: _glowAnimation.value < 1
-                    ? [
-                        BoxShadow(
-                          color: widget.glowColor.withValues(alpha: glowOpacity),
-                          blurRadius: glowBlur,
-                          spreadRadius: glowSpread,
-                        ),
-                      ]
-                    : null,
+                  return Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: _glowAnimation.value < 1
+                          ? [
+                              BoxShadow(
+                                color: widget.glowColor.withValues(
+                                  alpha: glowOpacity,
+                                ),
+                                blurRadius: glowBlur,
+                                spreadRadius: glowSpread,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: child,
+                  );
+                },
+                child: widget.child,
               ),
-              child: child,
-            );
-          },
-          child: widget.child,
-        ),
       ),
     );
   }

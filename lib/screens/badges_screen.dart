@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/badge_models.dart';
+import '../widgets/animated_button.dart';
 import '../widgets/cylindrical_badge_chip.dart';
 
 class BadgesScreen extends StatefulWidget {
@@ -161,9 +162,10 @@ class _BadgeGridItemState extends State<_BadgeGridItem>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      behavior: HitTestBehavior.opaque,
+    return AnimatedButton(
+      onPressed: widget.onTap,
+      enableGlow: false,
+      pressedScale: 0.93,
       child: Center(
         child: AnimatedBuilder(
           animation: _controller,
