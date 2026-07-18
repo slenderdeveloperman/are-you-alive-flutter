@@ -603,6 +603,12 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     _heartbeatPhase = phase;
+    // A profile queued but not yet consumed at a beat boundary belongs to
+    // the erratic session that's ending now — discard it so a later
+    // erratic session can't have it silently reapplied by
+    // _onHeartbeatStatusChanged.
+    _pendingBeatDuration = null;
+    _pendingScaleMultiplier = null;
 
     switch (phase) {
       case _HeartbeatPhase.inactive:
