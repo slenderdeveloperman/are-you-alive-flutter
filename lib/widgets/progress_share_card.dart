@@ -94,20 +94,18 @@ class ProgressShareCard extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: fitted.lines
-                        .map(
-                          (line) => Padding(
-                            padding: EdgeInsets.only(bottom: fitted.lineGap),
-                            child: Text(
-                              line,
-                              style: fitted.style,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
+                    children: [
+                      for (var i = 0; i < fitted.lines.length; i++) ...[
+                        if (i > 0) SizedBox(height: fitted.lineGap),
+                        Text(
+                          fitted.lines[i],
+                          style: fitted.style,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
@@ -136,8 +134,8 @@ class ProgressShareCard extends StatelessWidget {
       case ShareTheme.battery:
         return _TextZone(
           horizontalInset: horizontalInset,
-          topInset: (height * 0.70).clamp(310.0, 500.0).toDouble(),
-          bottomInset: (height * 0.10).clamp(50.0, 90.0).toDouble(),
+          topInset: (height * 0.28).clamp(140.0, 220.0).toDouble(),
+          bottomInset: (height * 0.30).clamp(150.0, 230.0).toDouble(),
           lineGap: (height * 0.014).clamp(6.0, 10.0).toDouble(),
         );
       case ShareTheme.timeServed:
