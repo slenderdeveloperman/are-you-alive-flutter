@@ -112,20 +112,32 @@ class SpiralAnimationPainter extends CustomPainter {
   static const String text = 'ARE YOU ALIVE?';
   static const double charSpacing = 18;
 
+  // Spiral point geometry is invariant (depends only on the constants
+  // above), so it's computed once and cached instead of every paint call.
+  static List<_SpiralPoint>? _cachedSpiralPoints;
+
+  static List<_SpiralPoint> _spiralPoints(double centerX, double centerY) {
+    return _cachedSpiralPoints ??= _generateSpiralPoints(centerX, centerY);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     // Scale factor to fit the 550x550 design into the actual canvas size
-    final scale = min(size.width, size.height) / 550;
+    // and center the drawing area within the viewport.
+    const canvasSize = 550.0;
+    final scale = min(size.width, size.height) / canvasSize;
+    final offsetX = (size.width - canvasSize * scale) / 2;
+    final offsetY = (size.height - canvasSize * scale) / 2;
     canvas.save();
+    canvas.translate(offsetX, offsetY);
     canvas.scale(scale, scale);
 
     // Draw on a virtual 550x550 canvas
-    const canvasSize = 550.0;
     final centerX = canvasSize / 2;
     final centerY = canvasSize / 2;
 
-    // Generate spiral points
-    final spiralPoints = _generateSpiralPoints(centerX, centerY);
+    // Cached — computed once, reused every frame.
+    final spiralPoints = _spiralPoints(centerX, centerY);
 
     // Calculate pipe position
     final outerPoint = spiralPoints.last;
@@ -171,7 +183,7 @@ class SpiralAnimationPainter extends CustomPainter {
     canvas.restore();
   }
 
-  List<_SpiralPoint> _generateSpiralPoints(double centerX, double centerY) {
+  static List<_SpiralPoint> _generateSpiralPoints(double centerX, double centerY) {
     final points = <_SpiralPoint>[];
 
     for (int i = 0; i <= totalSteps; i++) {

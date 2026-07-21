@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'animated_button.dart';
+
 class BottomActionPill extends StatelessWidget {
   const BottomActionPill({
     super.key,
@@ -55,11 +57,13 @@ class BottomActionPill extends StatelessWidget {
     return Semantics(
       button: true,
       label: semanticLabel,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
+      child: AnimatedButton(
+        onPressed: onTap,
+        enableGlow: false,
+        pressedScale: 0.88,
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          // 24px icon + 10px padding on each side = 44px touch target.
+          padding: const EdgeInsets.all(10),
           child: Icon(icon, color: Colors.white, size: 24),
         ),
       ),

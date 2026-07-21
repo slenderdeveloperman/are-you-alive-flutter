@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import '../theme/motion_tokens.dart';
+
 /// A particle system overlay for the heart widget.
 /// - Check-in: Emits upward-floating life particles (red/pink glow)
 /// - Decay: Emits downward-drifting dust particles (grey ash)
@@ -40,7 +42,7 @@ class _HeartParticlesState extends State<HeartParticles>
     _tickController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
-    )..repeat();
+    );
     _tickController.addListener(_updateParticles);
     _startDecaySpawner();
   }
@@ -85,13 +87,15 @@ class _HeartParticlesState extends State<HeartParticles>
   void _spawnLifeParticles() {
     // Spawn 8-12 life particles in a burst
     final count = 8 + _random.nextInt(5);
+    // Reduced motion: keep the fade feedback, cut travel distance to ~25%.
+    final velocityScale = MotionTokens.reducedMotion ? 0.25 : 1.0;
     for (var i = 0; i < count; i++) {
       final particle = _Particle(
         type: _ParticleType.life,
         x: widget.heartSize.width / 2 + (_random.nextDouble() - 0.5) * 60,
         y: widget.heartSize.height * 0.4 + (_random.nextDouble() - 0.5) * 40,
-        vx: (_random.nextDouble() - 0.5) * 30,
-        vy: -40 - _random.nextDouble() * 40, // Float upward
+        vx: (_random.nextDouble() - 0.5) * 30 * velocityScale,
+        vy: (-40 - _random.nextDouble() * 40) * velocityScale, // Float upward
         size: 3 + _random.nextDouble() * 4,
         lifetime: 1.5 + _random.nextDouble() * 0.5,
         age: 0,
@@ -101,24 +105,35 @@ class _HeartParticlesState extends State<HeartParticles>
       );
       _particles.add(particle);
     }
+    _ensureTicking();
   }
 
   void _spawnDustParticle() {
     // Spawn 1-2 dust particles
     final count = 1 + _random.nextInt(2);
+    final velocityScale = MotionTokens.reducedMotion ? 0.25 : 1.0;
     for (var i = 0; i < count; i++) {
       final particle = _Particle(
         type: _ParticleType.dust,
         x: widget.heartSize.width / 2 + (_random.nextDouble() - 0.5) * 80,
         y: widget.heartSize.height * 0.5 + (_random.nextDouble() - 0.5) * 30,
-        vx: (_random.nextDouble() - 0.5) * 15,
-        vy: 15 + _random.nextDouble() * 20, // Drift downward
+        vx: (_random.nextDouble() - 0.5) * 15 * velocityScale,
+        vy: (15 + _random.nextDouble() * 20) * velocityScale, // Drift downward
         size: 2 + _random.nextDouble() * 3,
         lifetime: 2.0 + _random.nextDouble() * 1.0,
         age: 0,
         color: Colors.grey.withValues(alpha: 0.5 + _random.nextDouble() * 0.3),
       );
       _particles.add(particle);
+    }
+    _ensureTicking();
+  }
+
+  /// Starts the tick loop if it isn't already running. Call this any time a
+  /// particle is added so the controller wakes back up.
+  void _ensureTicking() {
+    if (!_tickController.isAnimating) {
+      _tickController.repeat();
     }
   }
 
@@ -154,6 +169,10 @@ class _HeartParticlesState extends State<HeartParticles>
 
     if (mounted) {
       setState(() {});
+    }
+
+    if (_particles.isEmpty && _tickController.isAnimating) {
+      _tickController.stop();
     }
   }
 

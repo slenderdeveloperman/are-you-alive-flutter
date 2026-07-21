@@ -72,6 +72,7 @@ class _AppRouterState extends State<AppRouter> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed && _wasInBackground) {
       _wasInBackground = false;
       _trackAppOpen();
+      _checkNavigationStatus();
     }
   }
 

@@ -10,6 +10,7 @@ import 'package:are_you_alive_flutter/screens/eulogy_screen.dart';
 import 'package:are_you_alive_flutter/screens/home_screen.dart';
 import 'package:are_you_alive_flutter/screens/onboarding_screen.dart';
 import 'package:are_you_alive_flutter/screens/welcome_screen.dart';
+import 'package:are_you_alive_flutter/utils/date_utils.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -174,14 +175,14 @@ class _ShotGeneratorAppState extends State<_ShotGeneratorApp> {
   Future<void> _prepHome({required bool checkedInToday}) async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
-    final today = _dateOnly(now);
-    final yesterday = _dateOnly(now.subtract(const Duration(days: 1)));
+    final today = dateOnly(now);
+    final yesterday = dateOnly(now.subtract(const Duration(days: 1)));
 
     final dailyBuckets = <String, int>{
       today: 7,
       yesterday: 13,
-      _dateOnly(now.subtract(const Duration(days: 2))): 10,
-      _dateOnly(now.subtract(const Duration(days: 3))): 9,
+      dateOnly(now.subtract(const Duration(days: 2))): 10,
+      dateOnly(now.subtract(const Duration(days: 3))): 9,
     };
 
     final checkInHistory = <Map<String, Object>>[
@@ -220,13 +221,6 @@ class _ShotGeneratorAppState extends State<_ShotGeneratorApp> {
     await prefs.setInt('metrics.death.count', 0);
     await prefs.setString('metrics.badges.earnedJson', '{}');
     await prefs.setInt('metrics.schema.version', 1);
-  }
-
-  String _dateOnly(DateTime value) {
-    final y = value.year.toString().padLeft(4, '0');
-    final m = value.month.toString().padLeft(2, '0');
-    final d = value.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
   }
 
   Future<void> _captureCurrentScenario(String outputPath) async {

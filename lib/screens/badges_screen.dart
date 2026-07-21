@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models/badge_models.dart';
+import '../widgets/animated_button.dart';
 import '../widgets/cylindrical_badge_chip.dart';
 
 class BadgesScreen extends StatefulWidget {
-  const BadgesScreen({super.key, required this.snapshot});
+  const BadgesScreen({
+    super.key,
+    required this.snapshot,
+    DateTime Function()? nowProvider,
+  }) : _nowProvider = nowProvider;
 
   final BadgeSnapshot snapshot;
+  final DateTime Function()? _nowProvider;
 
   @override
   State<BadgesScreen> createState() => _BadgesScreenState();
@@ -13,6 +19,17 @@ class BadgesScreen extends StatefulWidget {
 
 class _BadgesScreenState extends State<BadgesScreen> {
   BadgeId? _expandedBadgeId;
+
+  static const _recentUnlockThreshold = Duration(minutes: 10);
+
+  DateTime _now() => widget._nowProvider?.call() ?? DateTime.now();
+
+  bool _isRecentlyUnlocked(BadgeProgress badge) {
+    final earnedAtMs = badge.earnedAtMs;
+    if (!badge.earned || earnedAtMs == null) return false;
+    final earnedAt = DateTime.fromMillisecondsSinceEpoch(earnedAtMs);
+    return _now().difference(earnedAt) <= _recentUnlockThreshold;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +84,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
                       badge: badge,
                       isExpanded: _expandedBadgeId == badge.definition.id,
                       onTap: () => _toggleExpanded(badge),
+                      celebrateUnlock: _isRecentlyUnlocked(badge),
                     );
                   },
                 ),
@@ -87,25 +105,97 @@ class _BadgesScreenState extends State<BadgesScreen> {
   }
 }
 
-class _BadgeGridItem extends StatelessWidget {
+class _BadgeGridItem extends StatefulWidget {
   const _BadgeGridItem({
     required this.badge,
     required this.isExpanded,
     required this.onTap,
+    required this.celebrateUnlock,
   });
 
   final BadgeProgress badge;
   final bool isExpanded;
   final VoidCallback onTap;
+  final bool celebrateUnlock;
+
+  @override
+  State<_BadgeGridItem> createState() => _BadgeGridItemState();
+}
+
+class _BadgeGridItemState extends State<_BadgeGridItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<double> _glowOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    // Overshoot slightly past 1.0 then settle — celebratory, not just a
+    // plain fade-in. elasticOut is too bouncy for a 56px chip; easeOutBack
+    // gives a subtle single overshoot.
+    _scale = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+    _glowOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    if (widget.celebrateUnlock) {
+      _controller.forward();
+    } else {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    return AnimatedButton(
+      onPressed: widget.onTap,
+      enableGlow: false,
+      pressedScale: 0.93,
       child: Center(
-        child: CylindricalBadgeChip(
-          badge: badge,
-          iconOnly: true,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.scale(
+              key: ValueKey('badge-scale-${widget.badge.definition.id.name}'),
+              scale: _scale.value,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: widget.celebrateUnlock
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF3FAE7A)
+                                .withValues(alpha: 0.5 * _glowOpacity.value),
+                            blurRadius: 24,
+                            spreadRadius: 4,
+                          ),
+                        ]
+                      : const [],
+                ),
+                child: child,
+              ),
+            );
+          },
+          child: CylindricalBadgeChip(
+            key: ValueKey('badge-chip-${widget.badge.definition.id.name}'),
+            badge: widget.badge,
+            iconOnly: true,
+          ),
         ),
       ),
     );

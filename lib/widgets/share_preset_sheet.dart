@@ -6,6 +6,7 @@ import 'package:screenshot/screenshot.dart';
 import '../config/share_presets.dart';
 import '../models/share_models.dart';
 import '../services/progress_share_service.dart';
+import '../theme/motion_tokens.dart';
 import 'progress_share_card.dart';
 
 class SharePresetSheet extends StatefulWidget {
@@ -168,8 +169,8 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
 
   Widget _buildPresetCard({required SharePreset preset, required bool selected}) {
     return AnimatedScale(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
+      duration: MotionTokens.selectionDuration,
+      curve: MotionTokens.easeOutStrong,
       scale: selected ? 1.02 : 1.0,
       child: InkWell(
         key: ValueKey('share-preset-card-${preset.id}'),
@@ -183,8 +184,8 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           key: ValueKey('share-preset-container-${preset.id}'),
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+          duration: MotionTokens.selectionDuration,
+          curve: MotionTokens.easeOutStrong,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),

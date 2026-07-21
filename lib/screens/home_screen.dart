@@ -16,16 +16,20 @@ import '../repositories/timer_message_repository.dart';
 import '../services/badge_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_layout.dart';
+import '../theme/motion_tokens.dart';
 import '../models/share_models.dart';
+import '../utils/date_utils.dart';
 import '../widgets/share_preset_sheet.dart';
 
 enum _HeartbeatPhase { inactive, normal, erratic, expired }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, DateTime Function()? nowProvider})
-    : _nowProvider = nowProvider;
+  const HomeScreen({super.key, DateTime Function()? nowProvider, Random? random})
+    : _nowProvider = nowProvider,
+      _random = random;
 
   final DateTime Function()? _nowProvider;
+  final Random? _random;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -34,8 +38,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   static final Uri _builtByUri = Uri.parse('https://x.com/slndrtweeterman');
-  static const String _homeTitleAsset =
-      'assets/title/home_title_handwritten.png';
   String _userName = '';
   bool _hasCheckedIn = false;
   int _streakCount = 0;
@@ -48,8 +50,10 @@ class _HomeScreenState extends State<HomeScreen>
   late Animation<double> _heartbeatAnimation;
   _HeartbeatPhase _heartbeatPhase = _HeartbeatPhase.inactive;
   Timer? _erraticBeatTimer;
-  final Random _random = Random();
+  late final Random _random;
   double _erraticScaleMultiplier = 1.0;
+  Duration? _pendingBeatDuration;
+  double? _pendingScaleMultiplier;
 
   // Shake animation for check-in
   late AnimationController _shakeController;
@@ -74,7 +78,8 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    _activeDayKey = _dateOnly(_now());
+    _random = widget._random ?? Random();
+    _activeDayKey = dateOnly(_now());
     WidgetsBinding.instance.addObserver(this);
     _loadUserData();
     _setupAnimation();
@@ -94,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
       _streakCount = loadedStreak;
       _checkInsSinceDeath = prefs.getInt('checkInsSinceDeath') ?? 3;
       _hasCheckedIn = hasCheckedInToday; // Set based on calendar day
-      _activeDayKey = _dateOnly(_now());
+      _activeDayKey = dateOnly(_now());
     });
     await _refreshBadgeSnapshot();
     await _refreshDailyTimerMessage(force: true);
@@ -103,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// Determines if the user has already checked in today
   Future<bool> _hasCheckedInToday() async {
     final prefs = await SharedPreferences.getInstance();
-    final today = _now().toIso8601String().substring(0, 10); // "YYYY-MM-DD"
+    final today = dateOnly(_now());
     final lastCheckInDate = prefs.getString('lastCheckInDate');
 
     return lastCheckInDate == today;
@@ -160,6 +165,8 @@ class _HomeScreenState extends State<HomeScreen>
       CurvedAnimation(parent: _heartbeatController, curve: Curves.easeInOut),
     );
 
+    _heartbeatController.addStatusListener(_onHeartbeatStatusChanged);
+
     // Shake animation - rapid horizontal vibration
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 400),
@@ -204,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// Increment streak if this is the first check-in of the day
   Future<void> _incrementStreakIfNewDay() async {
     final prefs = await SharedPreferences.getInstance();
-    final today = _now().toIso8601String().substring(0, 10); // "YYYY-MM-DD"
+    final today = dateOnly(_now());
     final lastCheckInDate = prefs.getString('lastCheckInDate');
 
     if (lastCheckInDate != today) {
@@ -241,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _hasCheckedIn = true;
       _isCheckingIn = true; // Trigger particle burst
-      _activeDayKey = _dateOnly(_now());
+      _activeDayKey = dateOnly(_now());
     });
     _applyHeartbeatPhase(_HeartbeatPhase.normal);
 
@@ -254,10 +261,14 @@ class _HomeScreenState extends State<HomeScreen>
       }
     });
 
-    // Start shake animation, then transition to heartbeat
-    _shakeController.forward().then((_) {
-      _shakeController.reset();
-    });
+    // Start shake animation, then transition to heartbeat.
+    // Reduced motion: skip the positional shake — the glow pulse and color
+    // change already communicate the check-in.
+    if (!MotionTokens.reducedMotion) {
+      _shakeController.forward().then((_) {
+        _shakeController.reset();
+      });
+    }
 
     // Save check-in metadata for badge logic before resetting the timer.
     await BadgeService().recordCheckInEvent(
@@ -303,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _calculateRemainingTime() {
     final now = _now();
-    final today = _dateOnly(now);
+    final today = dateOnly(now);
     final dayChanged = today != _activeDayKey;
     if (dayChanged) {
       _activeDayKey = today;
@@ -356,13 +367,6 @@ class _HomeScreenState extends State<HomeScreen>
     final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
     return '$hours:$minutes:$seconds';
-  }
-
-  String _dateOnly(DateTime value) {
-    final year = value.year.toString().padLeft(4, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
   }
 
   String _fallbackTimerMessage() {
@@ -461,7 +465,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _refreshDailyTimerMessage({bool force = false}) async {
     final now = _now();
-    final today = _dateOnly(now);
+    final today = dateOnly(now);
     if (!force && _lastTimerMessageDate == today && _timerMessage.isNotEmpty) {
       return;
     }
@@ -492,27 +496,16 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  BadgeProgress _currentBadge(BadgeSnapshot snapshot) {
-    final earnedBadges = snapshot.badges
-        .where((badge) => badge.earned)
-        .toList();
-    if (earnedBadges.isNotEmpty) {
-      earnedBadges.sort(
-        (a, b) => (b.earnedAtMs ?? 0).compareTo(a.earnedAtMs ?? 0),
-      );
-      return earnedBadges.first;
-    }
-
-    return snapshot.badges.reduce((best, badge) {
-      return badge.progress > best.progress ? badge : best;
-    });
-  }
-
   void _openBadgesScreen() {
     final snapshot = _badgeSnapshot;
     if (snapshot == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => BadgesScreen(snapshot: snapshot)),
+      MaterialPageRoute<void>(
+        builder: (_) => BadgesScreen(
+          snapshot: snapshot,
+          nowProvider: widget._nowProvider,
+        ),
+      ),
     );
   }
 
@@ -610,6 +603,12 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     _heartbeatPhase = phase;
+    // A profile queued but not yet consumed at a beat boundary belongs to
+    // the erratic session that's ending now — discard it so a later
+    // erratic session can't have it silently reapplied by
+    // _onHeartbeatStatusChanged.
+    _pendingBeatDuration = null;
+    _pendingScaleMultiplier = null;
 
     switch (phase) {
       case _HeartbeatPhase.inactive:
@@ -638,12 +637,31 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  void _startErraticHeartbeat() {
-    _erraticBeatTimer?.cancel();
-    _applyErraticBeatProfile();
+  void _onHeartbeatStatusChanged(AnimationStatus status) {
+    if (_heartbeatPhase != _HeartbeatPhase.erratic) return;
+    if (status != AnimationStatus.dismissed &&
+        status != AnimationStatus.completed) {
+      return;
+    }
+    if (_pendingBeatDuration == null) return;
+
+    // We're at a clean boundary (value is exactly 0.0 or 1.0) — safe to
+    // change duration and restart the repeat cycle with no direction jump.
+    _heartbeatController.duration = _pendingBeatDuration;
+    _erraticScaleMultiplier = _pendingScaleMultiplier!;
+    _pendingBeatDuration = null;
+    _pendingScaleMultiplier = null;
+
+    _heartbeatController.stop();
+    _heartbeatController.repeat(reverse: true);
   }
 
-  void _applyErraticBeatProfile() {
+  void _startErraticHeartbeat() {
+    _erraticBeatTimer?.cancel();
+    _applyErraticBeatProfile(immediate: true);
+  }
+
+  void _applyErraticBeatProfile({bool immediate = false}) {
     if (!mounted || _heartbeatPhase != _HeartbeatPhase.erratic) {
       return;
     }
@@ -651,11 +669,22 @@ class _HomeScreenState extends State<HomeScreen>
     final beatDuration = Duration(
       milliseconds: 350 + _random.nextInt(550), // 350-899ms
     );
-    _erraticScaleMultiplier = 0.92 + (_random.nextDouble() * 0.10); // 0.92-1.02
+    final reducedMotion = MotionTokens.reducedMotion;
+    // Reduced motion: keep the erratic *timing* (still communicates urgency)
+    // but dampen the extra scale swing to a barely-there range.
+    final scaleMultiplier = reducedMotion
+        ? 0.98 + (_random.nextDouble() * 0.02) // 0.98-1.00
+        : 0.92 + (_random.nextDouble() * 0.10); // 0.92-1.02
 
-    _heartbeatController.duration = beatDuration;
-    _heartbeatController.stop();
-    _heartbeatController.repeat(reverse: true);
+    if (immediate) {
+      _heartbeatController.duration = beatDuration;
+      _erraticScaleMultiplier = scaleMultiplier;
+      _heartbeatController.stop();
+      _heartbeatController.repeat(reverse: true);
+    } else {
+      _pendingBeatDuration = beatDuration;
+      _pendingScaleMultiplier = scaleMultiplier;
+    }
 
     final nextChangeDelay = Duration(
       milliseconds: 250 + _random.nextInt(900), // 250-1149ms
@@ -688,6 +717,7 @@ class _HomeScreenState extends State<HomeScreen>
                             return Transform.translate(
                               offset: Offset(_shakeAnimation.value, 6),
                               child: Transform.scale(
+                                key: const ValueKey('heartbeat-scale'),
                                 scale:
                                     (_heartbeatAnimation.value *
                                             (_heartbeatPhase ==
@@ -721,16 +751,16 @@ class _HomeScreenState extends State<HomeScreen>
                         const SizedBox(height: 20),
                         TweenAnimationBuilder<int>(
                           tween: IntTween(begin: _previousStreak, end: _streakCount),
-                          duration: const Duration(milliseconds: 600),
-                          curve: Curves.easeOutCubic,
+                          duration: MotionTokens.celebrationDuration,
+                          curve: MotionTokens.easeOutStrong,
                           builder: (context, value, child) {
                             return TweenAnimationBuilder<double>(
                               tween: Tween(
                                 begin: 1.0,
                                 end: _streakJustChanged ? 1.15 : 1.0,
                               ),
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOut,
+                              duration: MotionTokens.selectionDuration,
+                              curve: MotionTokens.easeOut,
                               builder: (context, scale, _) {
                                 return Transform.scale(
                                   scale: scale,
@@ -753,7 +783,7 @@ class _HomeScreenState extends State<HomeScreen>
 
                         // Show button with fade+slide animation
                         AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
+                          duration: MotionTokens.entranceDuration,
                           transitionBuilder: (child, animation) {
                             final slideAnimation =
                                 Tween<Offset>(
@@ -762,7 +792,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 ).animate(
                                   CurvedAnimation(
                                     parent: animation,
-                                    curve: Curves.easeOut,
+                                    curve: MotionTokens.easeOut,
                                   ),
                                 );
                             return FadeTransition(
@@ -861,15 +891,18 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-          // Animated "ARE YOU ALIVE?" loop positioned above the bottom pill
+          // Animated "ARE YOU ALIVE?" loop positioned just above the bottom pill
           Positioned(
             left: 0,
             right: 0,
-            bottom: 120 + MediaQuery.of(context).padding.bottom,
-            child: const Center(
-              child: SizedBox(
-                height: 450,
-                child: AreYouAliveLoop(),
+            bottom: 88 + MediaQuery.of(context).padding.bottom,
+            child: const IgnorePointer(
+              ignoring: true,
+              child: Center(
+                child: SizedBox(
+                  height: 96,
+                  child: AreYouAliveLoop(),
+                ),
               ),
             ),
           ),
