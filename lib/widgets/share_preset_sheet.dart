@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,7 +8,9 @@ import '../config/share_presets.dart';
 import '../models/share_models.dart';
 import '../services/progress_share_service.dart';
 import '../theme/motion_tokens.dart';
+import 'near_miss_background_painter.dart';
 import 'progress_share_card.dart';
+import 'terminal_texture_painter.dart';
 
 class SharePresetSheet extends StatefulWidget {
   const SharePresetSheet({
@@ -34,6 +37,14 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
   ShareContent? _previewContent;
   bool _loadingPreview = false;
   bool _isSharing = false;
+  bool _nearMissEligible = false;
+
+  List<SharePreset> get _visiblePresets => sharePresets
+      .where(
+        (preset) =>
+            preset.theme != ShareTheme.nearMiss || _nearMissEligible,
+      )
+      .toList();
 
   @override
   void initState() {
@@ -41,6 +52,15 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
     _shareService = widget._shareService ?? ProgressShareService();
     _selectedPreset = sharePresets.first;
     _selectedFields = Set<ShareField>.from(_selectedPreset.defaultFields);
+    unawaited(_loadNearMissEligibility());
+  }
+
+  Future<void> _loadNearMissEligibility() async {
+    final eligible = await _shareService.isNearMissEligible();
+    if (!mounted) return;
+    setState(() {
+      _nearMissEligible = eligible;
+    });
   }
 
   @override
@@ -151,8 +171,9 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
   }
 
   Widget _buildPresetPicker() {
+    final presets = _visiblePresets;
     return GridView.builder(
-      itemCount: sharePresets.length,
+      itemCount: presets.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 12,
@@ -160,7 +181,7 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
         childAspectRatio: 0.64,
       ),
       itemBuilder: (context, index) {
-        final preset = sharePresets[index];
+        final preset = presets[index];
         final selected = preset.id == _selectedPreset.id;
         return _buildPresetCard(preset: preset, selected: selected);
       },
@@ -212,11 +233,13 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(
-                    preset.thumbnailAssetPath,
-                    key: ValueKey('share-preset-thumb-${preset.id}'),
-                    fit: BoxFit.cover,
-                  ),
+                  child: preset.thumbnailAssetPath.isEmpty
+                      ? _buildPaintedThumbnail(preset)
+                      : Image.asset(
+                          preset.thumbnailAssetPath,
+                          key: ValueKey('share-preset-thumb-${preset.id}'),
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -235,6 +258,19 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaintedThumbnail(SharePreset preset) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: Color(0xFF0A0505)),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CustomPaint(painter: const NearMissBackgroundPainter()),
+          const CustomPaint(painter: TerminalTexturePainter()),
+        ],
       ),
     );
   }
@@ -464,6 +500,8 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
         return 'User name';
       case ShareField.proofTimestamp:
         return 'Proof timestamp';
+      case ShareField.lastCheckInMargin:
+        return 'Near-miss margin';
     }
   }
 }

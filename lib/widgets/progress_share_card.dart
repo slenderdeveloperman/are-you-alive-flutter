@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/share_models.dart';
+import 'near_miss_background_painter.dart';
+import 'terminal_texture_painter.dart';
 
 class ProgressShareCard extends StatelessWidget {
   const ProgressShareCard({super.key, required this.content});
@@ -59,11 +61,19 @@ class ProgressShareCard extends StatelessWidget {
                   child: Container(color: Colors.white),
                 ),
                 Positioned.fill(
-                  child: Image.asset(
-                    content.preset.backgroundAssetPath,
-                    fit: BoxFit.contain,
-                    alignment: Alignment.topCenter,
-                  ),
+                  child: content.preset.backgroundAssetPath.isEmpty
+                      ? const Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CustomPaint(painter: NearMissBackgroundPainter()),
+                            CustomPaint(painter: TerminalTexturePainter()),
+                          ],
+                        )
+                      : Image.asset(
+                          content.preset.backgroundAssetPath,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.topCenter,
+                        ),
                 ),
                 Positioned(
                   left: 0,
@@ -145,6 +155,13 @@ class ProgressShareCard extends StatelessWidget {
           topInset: (height * 0.27).clamp(130.0, 210.0).toDouble(),
           bottomInset: (height * 0.30).clamp(150.0, 230.0).toDouble(),
           lineGap: (height * 0.014).clamp(6.0, 10.0).toDouble(),
+        );
+      case ShareTheme.nearMiss:
+        return _TextZone(
+          horizontalInset: horizontalInset,
+          topInset: (height * 0.30).clamp(150.0, 230.0).toDouble(),
+          bottomInset: (height * 0.28).clamp(140.0, 220.0).toDouble(),
+          lineGap: (height * 0.016).clamp(6.0, 11.0).toDouble(),
         );
     }
   }
@@ -294,6 +311,21 @@ class ProgressShareCard extends StatelessWidget {
               color: Color(0x24000000),
               blurRadius: 1.2,
               offset: Offset(0, 0.6),
+            ),
+          ],
+        );
+      case ShareTheme.nearMiss:
+        return const TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 21,
+          height: 1.3,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          shadows: <Shadow>[
+            Shadow(
+              color: Color(0xFFEF4444),
+              blurRadius: 6,
+              offset: Offset(0, 0),
             ),
           ],
         );

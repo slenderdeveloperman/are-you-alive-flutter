@@ -12,11 +12,12 @@ enum ShareField {
   tallyGroups,
   userName,
   proofTimestamp,
+  lastCheckInMargin,
 }
 
 enum SharePrivacyLevel { low, medium, high }
 
-enum ShareTheme { certificate, battery, timeServed, proofOfLife }
+enum ShareTheme { certificate, battery, timeServed, proofOfLife, nearMiss }
 
 @immutable
 class SharePreset {

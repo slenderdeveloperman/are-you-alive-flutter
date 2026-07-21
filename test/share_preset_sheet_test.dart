@@ -1,10 +1,15 @@
+import 'dart:convert';
+
 import 'package:are_you_alive_flutter/config/share_presets.dart';
 import 'package:are_you_alive_flutter/models/share_models.dart';
 import 'package:are_you_alive_flutter/widgets/share_preset_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final input = SharePayloadInput(
     streakDays: 3,
     remaining: Duration(hours: 10),
@@ -16,12 +21,13 @@ void main() {
   );
 
   testWidgets('preset picker shows two thumbnail presets', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     await tester.pumpWidget(
       MaterialApp(home: Scaffold(body: SharePresetSheet(input: input))),
     );
     await tester.pump();
 
-    expect(sharePresets.length, 2);
+    expect(sharePresets.length, 3);
     expect(
       find.byKey(
         const ValueKey('share-preset-card-certificate_of_participation'),
@@ -41,6 +47,12 @@ void main() {
     expect(
       find.byKey(const ValueKey('share-preset-thumb-existential_battery')),
       findsOneWidget,
+    );
+    // Near-miss is hidden by default: no check-in history means it hasn't
+    // been earned yet.
+    expect(
+      find.byKey(const ValueKey('share-preset-card-near_miss_save')),
+      findsNothing,
     );
   });
 
@@ -80,5 +92,35 @@ void main() {
 
     expect(find.text('Check-in margin'), findsOneWidget);
     expect(find.text('Total cumulative hours'), findsNothing);
+  });
+
+  testWidgets('near-miss preset appears once a close call is on record', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'metrics.checkin.historyJson': jsonEncode(<Map<String, int>>[
+        <String, int>{
+          'timestampMs': 1000,
+          'remainingMs': const Duration(hours: 2).inMilliseconds,
+        },
+      ]),
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: SharePresetSheet(input: input))),
+    );
+    await tester.pumpAndSettle();
+
+    final nearMissCard = find.byKey(
+      const ValueKey('share-preset-card-near_miss_save'),
+    );
+    await tester.scrollUntilVisible(
+      nearMissCard,
+      200,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.pumpAndSettle();
+
+    expect(nearMissCard, findsOneWidget);
   });
 }

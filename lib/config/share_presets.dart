@@ -45,4 +45,23 @@ const List<SharePreset> sharePresets = <SharePreset>[
     optionalFields: <ShareField>{ShareField.nextDeadline},
     privacyLevel: SharePrivacyLevel.medium,
   ),
+  SharePreset(
+    id: 'near_miss_save',
+    title: 'Near Miss',
+    description: 'Cut it close. Glitch/countdown artwork.',
+    theme: ShareTheme.nearMiss,
+    thumbnailAssetPath: '',
+    backgroundAssetPath: '',
+    imageTemplates: <String>[
+      'T-MINUS {last_checkin_margin_text}.',
+      'Hour {last_checkin_hour_mark} of 39.',
+      'That\'s how close {user_name_or_fallback} cut it.',
+      'Still here. Barely.',
+    ],
+    captionTemplate:
+        'Checked in with {last_checkin_margin_text} left on the clock. Hour {last_checkin_hour_mark} of 39. #AreYouAlive',
+    defaultFields: <ShareField>{ShareField.lastCheckInMargin},
+    optionalFields: <ShareField>{ShareField.userName},
+    privacyLevel: SharePrivacyLevel.medium,
+  ),
 ];

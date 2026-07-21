@@ -116,5 +116,59 @@ void main() {
       expect(content.imageLines.join(' '), contains('Existential dread battery'));
       expect(content.caption, contains('Temporarily stable'));
     });
+
+    test('near-miss is ineligible with no check-in history', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final eligible = await ProgressShareService().isNearMissEligible();
+      expect(eligible, isFalse);
+    });
+
+    test('near-miss is ineligible when the last check-in had a wide margin', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'metrics.checkin.historyJson': jsonEncode(<Map<String, int>>[
+          <String, int>{
+            'timestampMs': 1000,
+            'remainingMs': const Duration(hours: 20).inMilliseconds,
+          },
+        ]),
+      });
+      final eligible = await ProgressShareService().isNearMissEligible();
+      expect(eligible, isFalse);
+    });
+
+    test('near-miss is eligible and builds countdown copy after a close call', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'metrics.checkin.historyJson': jsonEncode(<Map<String, int>>[
+          <String, int>{
+            'timestampMs': 1000,
+            'remainingMs': const Duration(hours: 2).inMilliseconds,
+          },
+        ]),
+      });
+
+      final service = ProgressShareService();
+      expect(await service.isNearMissEligible(), isTrue);
+
+      final preset = sharePresets.firstWhere(
+        (item) => item.id == 'near_miss_save',
+      );
+      final content = await service.buildContent(
+        preset: preset,
+        selectedFields: preset.defaultFields,
+        input: SharePayloadInput(
+          streakDays: 4,
+          remaining: const Duration(hours: 30),
+          timerMessage: 'check in',
+          userName: 'Yash',
+          now: DateTime(2026, 2, 9, 12, 0),
+          badgeSnapshot: null,
+          notificationTimestampMs: null,
+        ),
+      );
+
+      expect(content.imageLines.join(' '), contains('2h'));
+      expect(content.imageLines.join(' '), contains('Hour 37 of 39'));
+      expect(content.caption, contains('2h'));
+    });
   });
 }

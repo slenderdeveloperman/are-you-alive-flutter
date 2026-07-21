@@ -8,6 +8,8 @@ import '../models/share_models.dart';
 
 class ProgressShareService {
   static const String _checkInHistoryKey = 'metrics.checkin.historyJson';
+  static const Duration _checkInWindow = Duration(hours: 39);
+  static const Duration _nearMissThreshold = Duration(hours: 6);
 
   static const Map<String, ShareField> _tokenFieldMap = <String, ShareField>{
     '{cumulative_hours_text}': ShareField.cumulativeHours,
@@ -19,7 +21,41 @@ class ProgressShareService {
     '{tally_text}': ShareField.tallyGroups,
     '{user_name_or_fallback}': ShareField.userName,
     '{proof_timestamp_text}': ShareField.proofTimestamp,
+    '{last_checkin_margin_text}': ShareField.lastCheckInMargin,
+    '{last_checkin_hour_mark}': ShareField.lastCheckInMargin,
   };
+
+  /// Whether the most recorded check-in landed within [_nearMissThreshold]
+  /// of the 39-hour deadline — the moment the near-miss preset is built for.
+  Future<bool> isNearMissEligible() async {
+    final margin = await _lastCheckInMargin();
+    return margin != null && margin <= _nearMissThreshold;
+  }
+
+  Future<Duration?> _lastCheckInMargin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = prefs.getString(_checkInHistoryKey);
+    if (encoded == null || encoded.isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! List || decoded.isEmpty) return null;
+
+      final entries = decoded.whereType<Map>().toList()
+        ..sort((a, b) {
+          final aMs = (a['timestampMs'] as num?)?.toInt() ?? 0;
+          final bMs = (b['timestampMs'] as num?)?.toInt() ?? 0;
+          return aMs.compareTo(bMs);
+        });
+
+      final remainingMs = (entries.last['remainingMs'] as num?)?.toInt();
+      if (remainingMs == null) return null;
+
+      return Duration(milliseconds: remainingMs.clamp(0, 1 << 40));
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<ShareContent> buildContent({
     required SharePreset preset,
@@ -86,6 +122,7 @@ class ProgressShareService {
     final cumulativeHours = await _calculateCumulativeHours(
       fallbackStreak: input.streakDays,
     );
+    final lastCheckInMargin = await _lastCheckInMargin() ?? input.remaining;
 
     return <String, String>{
       '{cumulative_hours_text}': '$cumulativeHours hours',
@@ -104,7 +141,17 @@ class ProgressShareService {
           ? input.userName.trim()
           : 'Subject',
       '{proof_timestamp_text}': _formatDateTime(input.now),
+      '{last_checkin_margin_text}': _humanizeDuration(lastCheckInMargin),
+      '{last_checkin_hour_mark}': '${_hourMark(lastCheckInMargin)}',
     };
+  }
+
+  int _hourMark(Duration margin) {
+    final used = _checkInWindow - margin;
+    if (used.isNegative) return 1;
+    final wholeHours = used.inHours;
+    final hasRemainder = used.inMinutes % 60 > 0;
+    return (wholeHours + (hasRemainder ? 1 : 0)).clamp(1, 39);
   }
 
   Future<int> _calculateCumulativeHours({required int fallbackStreak}) async {
