@@ -7,11 +7,13 @@ class BottomActionPill extends StatelessWidget {
     super.key,
     required this.onShareTap,
     required this.onBadgeTap,
+    required this.onGuardianTap,
     required this.onBuilderTap,
   });
 
   final VoidCallback onShareTap;
   final VoidCallback onBadgeTap;
+  final VoidCallback onGuardianTap;
   final VoidCallback onBuilderTap;
 
   @override
@@ -37,6 +39,12 @@ class BottomActionPill extends StatelessWidget {
             icon: Icons.military_tech,
             onTap: onBadgeTap,
             semanticLabel: 'Badges',
+          ),
+          const SizedBox(width: 32),
+          _buildIcon(
+            icon: Icons.shield_outlined,
+            onTap: onGuardianTap,
+            semanticLabel: 'Emergency contact',
           ),
           const SizedBox(width: 32),
           _buildIcon(

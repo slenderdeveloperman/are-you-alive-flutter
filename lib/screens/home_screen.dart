@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'badges_screen.dart';
+import 'emergency_contact_screen.dart';
 import '../widgets/heart_painter.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/bottom_action_pill.dart';
@@ -509,6 +510,14 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  void _openEmergencyContactScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => EmergencyContactScreen(userName: _userName),
+      ),
+    );
+  }
+
   Future<void> _openShareSheet() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -916,6 +925,7 @@ class _HomeScreenState extends State<HomeScreen>
                   key: const ValueKey('bottom-action-pill'),
                   onShareTap: _openShareSheet,
                   onBadgeTap: _openBadgesScreen,
+                  onGuardianTap: _openEmergencyContactScreen,
                   onBuilderTap: _openBuiltByProfile,
                 ),
               ),
