@@ -5,17 +5,38 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:are_you_alive_flutter/models/emergency_contact_models.dart';
 import 'package:are_you_alive_flutter/screens/emergency_contact_screen.dart';
 import 'package:are_you_alive_flutter/services/emergency_contact_service.dart';
+import 'package:are_you_alive_flutter/services/pairing_service.dart';
 
 import 'emergency_contact_service_test.dart' show InMemoryKV;
 
+/// Offline-behaving fake: records createInvite calls, returns null
+/// (unreachable) so no regeneration paths trigger unless asked to reject.
+class RecordingPairingService extends PairingService {
+  RecordingPairingService({this.createResult});
+
+  final bool? createResult;
+  final List<String> createdCodes = <String>[];
+
+  @override
+  Future<bool?> createInvite({
+    required String code,
+    required String inviterId,
+  }) async {
+    createdCodes.add(code);
+    return createResult;
+  }
+}
+
 Widget _screen({
   required EmergencyContactService service,
+  PairingService? pairingService,
   Future<Contact?> Function()? picker,
 }) {
   return MaterialApp(
     home: EmergencyContactScreen(
       userName: 'Yash',
       service: service,
+      pairingService: pairingService ?? RecordingPairingService(),
       contactPicker: picker ?? () async => null,
     ),
   );
@@ -112,6 +133,61 @@ void main() {
     final saved = await service.load();
     expect(saved!.status, PairingStatus.confirmed);
     expect(saved.manuallyConfirmed, isTrue);
+  });
+
+  testWidgets('picking a contact registers the invite with the backend', (
+    tester,
+  ) async {
+    final service = _serviceWith(InMemoryKV());
+    final pairing = RecordingPairingService(createResult: true);
+    await tester.pumpWidget(
+      _screen(
+        service: service,
+        pairingService: pairing,
+        picker: () async =>
+            Contact(fullName: 'Ravi', selectedPhoneNumber: '98765 43210'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('emergency-choose-button')));
+    await tester.pumpAndSettle();
+
+    final saved = await service.load();
+    expect(pairing.createdCodes, <String>[saved!.pairingCode]);
+  });
+
+  testWidgets('a rejected code is regenerated and re-registered', (
+    tester,
+  ) async {
+    final service = _serviceWith(InMemoryKV());
+    final pairing = RecordingPairingService(createResult: false);
+    await tester.pumpWidget(
+      _screen(
+        service: service,
+        pairingService: pairing,
+        picker: () async =>
+            Contact(fullName: 'Ravi', selectedPhoneNumber: '98765 43210'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('emergency-choose-button')));
+    await tester.pumpAndSettle();
+
+    // First code rejected → regenerated once → second attempt made.
+    expect(pairing.createdCodes, hasLength(2));
+    expect(pairing.createdCodes[0], isNot(pairing.createdCodes[1]));
+
+    // The stored state carries the regenerated code (the second attempt).
+    final saved = await service.load();
+    expect(saved!.pairingCode, pairing.createdCodes[1]);
+
+    // And the pending UI shows the same code the backend last saw.
+    final codeText = tester.widget<Text>(
+      find.byKey(const ValueKey('emergency-pairing-code')),
+    );
+    expect(codeText.data, saved.pairingCode);
   });
 
   testWidgets('change contact clears state back to empty', (tester) async {

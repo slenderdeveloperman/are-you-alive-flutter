@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased — share fixes, near-miss preset, emergency contact (phases A+B)
+
+Session of 2026-07-20/21.
+
+### Share card fixes
+
+- Preset text vertical alignment: the layout measured line-gaps between
+  lines but rendered a trailing gap after every line, so text blocks sat
+  off-center and the last line could spill past the zone into the scrim.
+- Battery preset text zone recentered onto the artwork's spiral (was
+  rendering below it, over the wax seal).
+- Known issue flagged, not fixed: `certificate_preset.png` and
+  `battery_preset.png` have swapped visual content relative to their names.
+
+### Near-miss share preset
+
+- New `ShareTheme.nearMiss` ("Near Miss") with a generated countdown-ring
+  + hazard-stripe background (no static asset). Hidden until the last
+  check-in landed within 6h of the 39h deadline; copy shows the real
+  margin and hour mark (e.g. "T-MINUS 1h 58m. Hour 37 of 39.").
+
+### Emergency contact (plan 009, phases A+B of D)
+
+- **Phase A (client)**: OS single-contact picker (no contacts permission),
+  `AYA-XXXXXX` pairing codes, WhatsApp nudge via `wa.me` deep link with
+  share-sheet fallback (needs no phone number), three-state screen behind
+  a new shield icon on the bottom pill, state in secure storage.
+- **Phase B (backend + client)**: Neon project (Data API + Neon Auth),
+  RPC-only `invites` table (`backend/neon/001_invites.sql`) with atomic
+  one-shot claim and opportunistic TTL cleanup; `PairingService` with
+  anonymous-JWT caching/refresh. Verified end-to-end against the live API,
+  including denial of direct table access.
+- Phases C (claim path on the contact's phone) and D (status sync on app
+  open) are still pending — see `plans/009-emergency-contact-pairing.md`.
+
+### Docs
+
+- README rewritten from Flutter boilerplate to a real project overview.
+
 ## Unreleased — motion, accessibility, and press-feedback pass
 
 Range: `e46c6d0..72ad449` (10 commits). Full context on the animation work

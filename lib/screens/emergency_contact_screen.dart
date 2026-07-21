@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart';
@@ -6,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/emergency_contact_models.dart';
 import '../services/emergency_contact_service.dart';
+import '../services/pairing_service.dart';
 import '../widgets/animated_button.dart';
 
 class EmergencyContactScreen extends StatefulWidget {
@@ -13,12 +16,15 @@ class EmergencyContactScreen extends StatefulWidget {
     super.key,
     required this.userName,
     EmergencyContactService? service,
+    PairingService? pairingService,
     Future<Contact?> Function()? contactPicker,
   }) : _service = service,
+       _pairingService = pairingService,
        _contactPicker = contactPicker;
 
   final String userName;
   final EmergencyContactService? _service;
+  final PairingService? _pairingService;
   final Future<Contact?> Function()? _contactPicker;
 
   @override
@@ -27,6 +33,7 @@ class EmergencyContactScreen extends StatefulWidget {
 
 class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   late final EmergencyContactService _service;
+  late final PairingService _pairingService;
   late final Future<Contact?> Function() _pickContact;
 
   EmergencyContactState? _state;
@@ -36,10 +43,42 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   void initState() {
     super.initState();
     _service = widget._service ?? EmergencyContactService();
+    _pairingService = widget._pairingService ?? PairingService();
     _pickContact =
         widget._contactPicker ??
         () => FlutterNativeContactPicker().selectPhoneNumber();
     _load();
+  }
+
+  /// Best-effort registration of the invite with the backend. Repeat calls
+  /// are safe: the server replaces this device's own unclaimed invite. A
+  /// `false` result means the code collided or was rejected — regenerate
+  /// once and persist the new code. Network failure (null) is ignored;
+  /// the next nudge tap retries.
+  Future<void> _registerInvite(EmergencyContactState state) async {
+    final deviceId = await _service.getOrCreateDeviceId();
+    final created = await _pairingService.createInvite(
+      code: state.pairingCode,
+      inviterId: deviceId,
+    );
+    if (created != false) return;
+
+    final regenerated = EmergencyContactState(
+      name: state.name,
+      phone: state.phone,
+      pairingCode: _service.generatePairingCode(),
+      status: PairingStatus.pending,
+    );
+    await _service.save(regenerated);
+    if (mounted) {
+      setState(() {
+        _state = regenerated;
+      });
+    }
+    await _pairingService.createInvite(
+      code: regenerated.pairingCode,
+      inviterId: deviceId,
+    );
   }
 
   Future<void> _load() async {
@@ -83,11 +122,17 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     setState(() {
       _state = state;
     });
+    unawaited(_registerInvite(state));
   }
 
   Future<void> _sendNudge() async {
-    final state = _state;
+    var state = _state;
     if (state == null) return;
+
+    // Awaited (not fire-and-forget): a code collision regenerates the
+    // code, and the message must carry whatever code ends up stored.
+    await _registerInvite(state);
+    state = _state ?? state;
 
     final message = _service.buildInviteMessage(
       userName: widget.userName,

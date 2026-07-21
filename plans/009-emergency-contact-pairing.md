@@ -1,6 +1,11 @@
 # 009 — Emergency contact: pick, nudge, pair
 
-- **Status**: PHASE A DONE (2026-07-21) — B/C/D pending
+- **Status**: PHASES A+B DONE (2026-07-21) — C/D pending
+- **Backend**: Neon, not Supabase (decision changed 2026-07-21 — Supabase
+  org was at its 2-free-project cap; user chose a dedicated Neon project).
+  Project `nameless-waterfall-79350558` (ARE-YOU-ALIVE), aws-ap-southeast-1,
+  in the Vercel-managed org `org-raspy-credit-58759334`. Schema lives in
+  `backend/neon/001_invites.sql`; endpoints in `lib/config/backend_config.dart`.
 - **Category**: Feature (first networked feature)
 - **Estimated scope**: ~6 new files, 3 modified, plus a Supabase project
 - **Depends on**: nothing in-app; Supabase project setup (free tier)
@@ -104,7 +109,22 @@ Phase A is fully testable and shippable with the pending state simply never
 resolving (or resolving via a manual "they told me they installed it"
 override, which stays useful forever as the no-backend fallback).
 
-## Phase B — Supabase pairing table
+## Phase B — pairing table (built on Neon Data API)
+
+AS BUILT (differs from the original Supabase sketch below):
+- Access is RPC-only via Neon's Data API (PostgREST-style). The `anonymous`
+  role has EXECUTE on exactly three SECURITY DEFINER functions
+  (`create_invite`, `claim_invite`, `get_invite_status`) and zero table
+  grants — direct reads return 42501. Schema: `backend/neon/001_invites.sql`.
+- Requests need an anonymous JWT from `GET {auth}/token/anonymous` (~1h
+  expiry, no sign-in). `PairingService` caches it and refreshes on 401.
+- TTL cleanup runs opportunistically inside `create_invite` (unclaimed
+  rows >30 days) because Neon free-tier compute scales to zero and pg_cron
+  can't be relied on.
+- `create_invite` also deletes the caller's own previous unclaimed invite,
+  making repeat registration idempotent and re-pairing self-cleaning.
+
+Original sketch (kept for reference):
 
 One table, RLS-guarded, accessed directly via the anon key (no edge
 functions needed for pairing):
