@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased — share presets reframed under ESTD. INDICA / F.C.C.D.B. branding
+
+Session of 2026-07-22.
+
+Replaced the "Certificate" and "Battery" share presets' artwork and copy with
+public-domain Renaissance engravings, treated in the ESTD. INDICA brand's
+ink/parchment duotone (`#1a1a1a` / `#ece4d4`) and stamped with that brand's
+Filing Stamp format, citing the app's existing archive code `FLD-AYA-01`
+(assigned in the brand repo's classification system, previously unused in
+the app itself — this is the first real execution of that connection, not
+just the assignment of a code). Full reasoning and the brand-side guardrails
+this satisfies are logged in `ESTD-INDICA-BRAIN/decisions-log.md`
+(2026-07-22 entry); this file only tracks the in-repo build.
+
+- **Survey Plate** (was "Certificate"): Vesalius's 1543 muscle-man plate
+  (*De Humani Corporis Fabrica*), original Latin plate title kept intact.
+- **Melencolia** (was "Battery"): Dürer's 1514 *Melencolia I*, its own
+  "MELENCOLIA I" banner kept intact.
+- Copy reframed in the Bureau's documentation register (`PRIMA TABULA.`,
+  `MELENCOLIA STATUS.`, etc.), reusing the existing share-token system
+  unchanged.
+- `progress_share_card.dart`: text zones and colors retuned per theme for
+  the new artwork. Two real bugs caught during visual verification: the
+  auto-fit algorithm only ever corrects for vertical overflow (oversized
+  lines were silently per-character ellipsizing instead of shrinking, now
+  fixed by shortening copy); and the compositing script centers art
+  vertically in the 9:16 canvas, leaving a bottom letterbox margin that
+  wasn't being cleared, letting text float off the artwork.
+- Old swapped/mislabeled `certificate_preset.png` / `battery_preset.png`
+  removed.
+- `flutter analyze` clean; 102/102 tests pass (one assertion updated for
+  the new battery copy).
+
 ## Unreleased — share fixes, near-miss preset, emergency contact (complete)
 
 Session of 2026-07-20/22.

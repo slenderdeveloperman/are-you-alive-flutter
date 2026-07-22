@@ -13,9 +13,12 @@ loop runs on-device.
   notification when time runs short. Miss it and you get the eulogy.
 - **Streaks & badges** — eight badges (Cliffhanger, Last Breath, Iron
   Routine, Phoenix, …) computed from local check-in history.
-- **Share cards** — stat cards rendered over preset artwork (certificate,
-  battery, and a near-miss card that only unlocks when you checked in
-  within 6 hours of the deadline).
+- **Share cards** — stat cards rendered over preset artwork: "Survey Plate"
+  (Vesalius) and "Melencolia" (Dürer), both public-domain Renaissance
+  engravings treated in the ESTD. INDICA / F.C.C.D.B. brand's ink/parchment
+  duotone and filing-stamp format (archive code `FLD-AYA-01`), plus a
+  near-miss card that only unlocks when you checked in within 6 hours of
+  the deadline.
 - **Emergency contact** — pick one person from your contacts; they get a
   WhatsApp nudge with a pairing code and an invite to install the app.
   Installing via the link (or typing the code by hand) pairs the two
