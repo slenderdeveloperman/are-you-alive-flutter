@@ -113,8 +113,9 @@ void main() {
       );
 
       expect(content.imageLines.join(' '), isNot(contains('Private Name')));
-      expect(content.imageLines.join(' '), contains('Existential dread battery'));
-      expect(content.caption, contains('Temporarily stable'));
+      expect(content.imageLines.join(' '), contains('MELENCOLIA STATUS'));
+      expect(content.imageLines.join(' '), contains('CAUTIOUSLY STABLE'));
+      expect(content.caption, contains('Filed and still standing'));
     });
 
     test('near-miss is ineligible with no check-in history', () async {

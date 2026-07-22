@@ -135,17 +135,29 @@ class ProgressShareCard extends StatelessWidget {
 
     switch (theme) {
       case ShareTheme.certificate:
+        // Vesalius survey plate: the figure fills most of the frame, so the
+        // text zone sits low, over the calmer cityscape/rubble band rather
+        // than the dense muscle linework, and clears the filing-stamp patch
+        // baked into the artwork's bottom-right corner.
         return _TextZone(
           horizontalInset: horizontalInset,
-          topInset: (height * 0.59).clamp(260.0, 470.0).toDouble(),
-          bottomInset: (height * 0.17).clamp(90.0, 155.0).toDouble(),
+          topInset: (height * 0.61).clamp(280.0, 480.0).toDouble(),
+          bottomInset: (height * 0.19).clamp(100.0, 170.0).toDouble(),
           lineGap: (height * 0.012).clamp(5.0, 8.0).toDouble(),
         );
       case ShareTheme.battery:
+        // Melencolia: the angel's pale dress/cloak (lower-middle of the
+        // plate) is the lightest, least-detailed area of the engraving —
+        // the only band wide enough for centered text without fighting
+        // the hourglass/scales/magic-square linework above it.
+        // fit_on_canvas centers the plate vertically, leaving roughly equal
+        // ~16%-of-height letterbox margins top and bottom — bottomInset
+        // must clear that margin or the last line floats off the artwork
+        // into blank parchment.
         return _TextZone(
           horizontalInset: horizontalInset,
-          topInset: (height * 0.28).clamp(140.0, 220.0).toDouble(),
-          bottomInset: (height * 0.30).clamp(150.0, 230.0).toDouble(),
+          topInset: (height * 0.64).clamp(300.0, 500.0).toDouble(),
+          bottomInset: (height * 0.20).clamp(110.0, 180.0).toDouble(),
           lineGap: (height * 0.014).clamp(6.0, 10.0).toDouble(),
         );
       case ShareTheme.timeServed:
@@ -256,14 +268,17 @@ class ProgressShareCard extends StatelessWidget {
   TextStyle _textStyleForTheme(ShareTheme theme) {
     switch (theme) {
       case ShareTheme.certificate:
+        // Ink-on-parchment documentation register (Bureau standard), not
+        // the old diploma-serif treatment — matches the survey-plate art.
         return const TextStyle(
-          fontFamily: 'Georgia',
-          fontSize: 19,
-          height: 1.28,
-          color: Color(0xFF171717),
+          fontFamily: 'monospace',
+          fontSize: 18,
+          height: 1.32,
+          color: Color(0xFF1A1A1A),
+          fontWeight: FontWeight.w600,
           shadows: <Shadow>[
             Shadow(
-              color: Color(0x26000000),
+              color: Color(0x1F000000),
               blurRadius: 1.2,
               offset: Offset(0, 0.6),
             ),
@@ -272,13 +287,13 @@ class ProgressShareCard extends StatelessWidget {
       case ShareTheme.battery:
         return const TextStyle(
           fontFamily: 'monospace',
-          fontSize: 20,
+          fontSize: 19,
           height: 1.34,
-          color: Color(0xFF031A03),
+          color: Color(0xFF1A1A1A),
           fontWeight: FontWeight.w600,
           shadows: <Shadow>[
             Shadow(
-              color: Color(0x24000000),
+              color: Color(0x1F000000),
               blurRadius: 1.2,
               offset: Offset(0, 0.6),
             ),

@@ -3,19 +3,19 @@ import '../models/share_models.dart';
 const List<SharePreset> sharePresets = <SharePreset>[
   SharePreset(
     id: 'certificate_of_participation',
-    title: 'Certificate',
-    description: 'Existential battery artwork',
+    title: 'Survey Plate',
+    description: 'FLD-AYA-01 — the Bureau\'s plate on continued existence.',
     theme: ShareTheme.certificate,
-    thumbnailAssetPath: 'assets/share_presets/certificate_preset.png',
-    backgroundAssetPath: 'assets/share_presets/certificate_preset.png',
+    thumbnailAssetPath: 'assets/share_presets/survey_plate_vesalius.png',
+    backgroundAssetPath: 'assets/share_presets/survey_plate_vesalius.png',
     imageTemplates: <String>[
-      'Certificate of Participation in Reality.',
-      'I\'ve wasted {cumulative_hours_text} on this app.',
-      'Current Rank: {rank_title}.',
+      'PRIMA TABULA.',
+      '{cumulative_hours_text} on record.',
+      'Class: {rank_title}.',
       '{streak_days_text}',
     ],
     captionTemplate:
-        'Certified alive. {cumulative_hours_text} invested. Rank: {rank_title}. #AreYouAlive',
+        'Filed under FLD-AYA-01. {cumulative_hours_text} on record. Classification: {rank_title}. #AreYouAlive',
     defaultFields: <ShareField>{
       ShareField.cumulativeHours,
       ShareField.rankTitle,
@@ -25,19 +25,19 @@ const List<SharePreset> sharePresets = <SharePreset>[
   ),
   SharePreset(
     id: 'existential_battery',
-    title: 'Battery',
-    description: 'Participation certificate artwork',
+    title: 'Melencolia',
+    description: 'FLD-AYA-01 — the hour, weighed.',
     theme: ShareTheme.battery,
-    thumbnailAssetPath: 'assets/share_presets/battery_preset.png',
-    backgroundAssetPath: 'assets/share_presets/battery_preset.png',
+    thumbnailAssetPath: 'assets/share_presets/melencolia_durer.png',
+    backgroundAssetPath: 'assets/share_presets/melencolia_durer.png',
     imageTemplates: <String>[
-      'Existential dread battery status: FULLY CHARGED.',
-      'I beat the clock by {checkin_margin_text}.',
+      'MELENCOLIA STATUS.',
       'Status: {stability_status}.',
-      'Deadline: {next_deadline_text}',
+      'Margin: {checkin_margin_text}.',
+      'Next: {next_deadline_text}',
     ],
     captionTemplate:
-        'Temporarily stable. Margin: {checkin_margin_text}. #AreYouAlive',
+        'Filed and still standing. Margin: {checkin_margin_text}. #AreYouAlive',
     defaultFields: <ShareField>{
       ShareField.checkInMargin,
       ShareField.stabilityStatus,
