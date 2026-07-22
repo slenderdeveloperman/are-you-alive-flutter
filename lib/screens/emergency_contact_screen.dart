@@ -82,6 +82,9 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   }
 
   Future<void> _load() async {
+    // Phase D: refresh against the backend before rendering, so opening
+    // this screen shows current status rather than a stale pending state.
+    await _service.syncStatus(_pairingService);
     final state = await _service.load();
     if (!mounted) return;
     setState(() {

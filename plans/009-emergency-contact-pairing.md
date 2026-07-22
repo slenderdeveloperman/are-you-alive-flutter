@@ -1,6 +1,6 @@
 # 009 — Emergency contact: pick, nudge, pair
 
-- **Status**: PHASES A+B DONE (2026-07-21) — C/D pending
+- **Status**: DONE (2026-07-22) — all four phases shipped
 - **Backend**: Neon, not Supabase (decision changed 2026-07-21 — Supabase
   org was at its 2-free-project cap; user chose a dedicated Neon project).
   Project `nameless-waterfall-79350558` (ARE-YOU-ALIVE), aws-ap-southeast-1,
@@ -160,40 +160,50 @@ in a new `lib/config/backend_config.dart`. `getInviteStatus` must
 distinguish three results: `pending`, `claimed`, and `notFound` — the last
 one is load-bearing (see Phase D).
 
-## Phase C — the claim path on the contact's phone
+## Phase C — the claim path on the contact's phone (AS BUILT)
 
-1. **Android referrer.** On first launch, read the Play Install Referrer
-   (`android_play_install_referrer` package) and look for an `AYA-` code.
-   NOTE: Firebase Dynamic Links is shut down (Aug 2025) — do not use it;
-   referrer + manual entry is the whole strategy.
-2. **Manual entry (iOS + universal fallback).** Onboarding gains an
-   unobtrusive "Have an invite code?" affordance. Same claim path.
-3. **Accept screen.** "{claimer sees}: Someone chose you as their emergency
-   contact." → optional name field → Accept → `claimInvite()`. Then normal
-   onboarding continues; the claimer is a full user of the app themselves
-   from day one (that's the growth loop).
+- **Android referrer.** `play_install_referrer` (the maintained successor —
+  `android_play_install_referrer` is discontinued on pub.dev and points here)
+  reads the referrer on `WelcomeScreen.initState`; `InviteClaimService`
+  extracts the `AYA-XXXXXX` code via regex, gated behind
+  `Platform.isAndroid` so iOS/other platforms never touch the channel.
+  Firebase Dynamic Links is shut down (Aug 2025) — not used.
+- **Manual entry (universal path).** `WelcomeScreen` gained a quiet
+  "have an invite code?" `TextButton` beneath "proceed" (not inside the
+  onboarding explainer screens — the welcome/name-entry screen is the
+  actual first-launch entry point). Opens a bottom sheet (`_InviteCodeSheet`
+  in `welcome_screen.dart`) with a code field pre-filled from the detected
+  referrer if one was found.
+- **Accept.** Sheet calls `PairingService.claimInvite(code, claimerId,
+  claimerName)` using the claimer's own device UUID (reusing
+  `EmergencyContactService.getOrCreateDeviceId()` — device identity isn't
+  contact-specific) and whatever name they'd already typed into the welcome
+  screen's name field. Shows one of four outcomes inline (claimed /
+  already-claimed / not-found / network failure) and auto-closes ~1s after
+  a successful claim; other outcomes leave the sheet open to retry.
 
-## Phase D — status sync on the inviter's phone
+## Phase D — status sync on the inviter's phone (AS BUILT)
 
-On app open (piggyback on `AppRouter`'s existing init, or HomeScreen
-`initState`), if a local invite exists and isn't confirmed:
-`getInviteStatus(code)` → if claimed, flip the card to confirmed and fire a
-one-time celebration (reuse the badge-unlock celebration pattern from plan
-008). No FCM, no polling timers — the 39-hour check-in loop guarantees the
-user opens the app often enough for open-time sync to feel immediate.
+`EmergencyContactService.syncStatus(PairingService)` is the single
+authority for this: no-ops unless local state is `pending`, then calls
+`getInviteStatus(code)` and maps the three outcomes to `SyncOutcome`
+(`confirmed` / `resetExpired` / `unchanged` — network failure and `pending`
+both collapse to `unchanged`, preserving the timeout-vs-notFound distinction
+below). Called from two places:
 
-Offline/failure behavior: status check is fire-and-forget with a short
-timeout; **network failures** leave the pending state untouched. Never
-block the home screen on the network — this app must keep working fully
-offline.
+- `EmergencyContactScreen._load()` — refreshes before rendering, so opening
+  the screen directly always shows current status.
+- `HomeScreen._loadUserData()` — fire-and-forget on every app open (cold
+  start and foreground resume), surfacing the outcome as a `SnackBar`
+  ("{name} has your back now." / "Emergency contact invite expired — choose
+  again."). No FCM, no polling timers — the 39-hour check-in loop already
+  guarantees frequent opens. A skipped celebration-widget reuse from plan
+  008: a SnackBar was judged sufficient for v1; badge-style celebration can
+  be added later without changing `syncStatus`'s contract.
 
-Orphan detection: a successful response of `notFound` (code no longer
-exists — TTL cleanup after an inviter reinstall, or a stale/invalidated
-code) is NOT a failure: it resets the card to the empty state with a
-gentle "invite expired — choose your contact again" note. Silent zombie
-pending states are the one outcome this phase must never produce.
-Distinguish carefully: timeout/offline → keep pending; authoritative
-notFound → reset.
+Orphan detection held exactly as designed: `notFound` clears local state
+entirely (never a silent zombie pending); timeout/offline leaves pending
+state untouched. Verified in both directions by dedicated tests.
 
 ## Testing
 

@@ -4,7 +4,7 @@
 
 | # | Title | Category | Status |
 |---|---|---|---|
-| [009](009-emergency-contact-pairing.md) | Emergency contact: pick, nudge, pair | Feature (first networked feature) | PHASES A+B DONE |
+| [009](009-emergency-contact-pairing.md) | Emergency contact: pick, nudge, pair | Feature (first networked feature) | DONE |
 
 # Animation improvement plans
 

@@ -16,9 +16,11 @@ loop runs on-device.
 - **Share cards** — stat cards rendered over preset artwork (certificate,
   battery, and a near-miss card that only unlocks when you checked in
   within 6 hours of the deadline).
-- **Emergency contact** *(in progress, plan 009)* — pick one person; they
-  get a WhatsApp nudge with a pairing code and an invite to install the
-  app. Pairing state syncs through a tiny Neon backend.
+- **Emergency contact** — pick one person from your contacts; they get a
+  WhatsApp nudge with a pairing code and an invite to install the app.
+  Installing via the link (or typing the code by hand) pairs the two
+  devices through a tiny Neon backend; the inviter sees "{name} has your
+  back" the next time they open the app.
 
 ## Architecture
 
@@ -40,6 +42,19 @@ The only networked feature is emergency-contact pairing:
   authoritative `not_found` used to detect orphaned invites.
 - **Endpoints**: `lib/config/backend_config.dart` (public by design — all
   security is server-side grants + RLS).
+- **Claim path**: the invite link carries the pairing code via the Play
+  Store's `&referrer=` parameter; `lib/services/invite_claim_service.dart`
+  reads it back on first launch (Android only) via
+  `play_install_referrer`. Installing by searching the store instead of
+  tapping the link loses that signal, so `WelcomeScreen` also has a manual
+  "have an invite code?" entry — the universal path, not just an iOS
+  fallback.
+- **Status sync**: `EmergencyContactService.syncStatus()` checks a pending
+  invite against the backend from both `HomeScreen` (every app open) and
+  `EmergencyContactScreen` (on open), and is the one place that
+  distinguishes "still pending," "claimed," and "the code no longer
+  exists" (which resets local state instead of leaving a stale pending
+  card forever).
 
 To re-apply the schema:
 

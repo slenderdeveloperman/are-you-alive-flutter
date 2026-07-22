@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased — share fixes, near-miss preset, emergency contact (phases A+B)
+## Unreleased — share fixes, near-miss preset, emergency contact (complete)
 
-Session of 2026-07-20/21.
+Session of 2026-07-20/22.
 
 ### Share card fixes
 
@@ -21,7 +21,7 @@ Session of 2026-07-20/21.
   check-in landed within 6h of the 39h deadline; copy shows the real
   margin and hour mark (e.g. "T-MINUS 1h 58m. Hour 37 of 39.").
 
-### Emergency contact (plan 009, phases A+B of D)
+### Emergency contact (plan 009, all four phases done)
 
 - **Phase A (client)**: OS single-contact picker (no contacts permission),
   `AYA-XXXXXX` pairing codes, WhatsApp nudge via `wa.me` deep link with
@@ -32,8 +32,22 @@ Session of 2026-07-20/21.
   one-shot claim and opportunistic TTL cleanup; `PairingService` with
   anonymous-JWT caching/refresh. Verified end-to-end against the live API,
   including denial of direct table access.
-- Phases C (claim path on the contact's phone) and D (status sync on app
-  open) are still pending — see `plans/009-emergency-contact-pairing.md`.
+- **Phase C (claim path)**: Play Install Referrer read on first launch
+  (`play_install_referrer` — its predecessor `android_play_install_referrer`
+  is discontinued) auto-detects the code on Android; a new "have an invite
+  code?" affordance on the welcome screen covers iOS and the case where the
+  contact installed by searching the store instead of tapping the link.
+  Accept flow calls `claimInvite` and surfaces claimed/already-claimed/
+  not-found/offline distinctly.
+- **Phase D (status sync)**: `EmergencyContactService.syncStatus()` checks
+  a pending invite on every app open and on opening the emergency-contact
+  screen directly; flips to confirmed with a snackbar, or — the one case
+  this phase was built to prevent — resets local state instead of leaving
+  a stale pending card forever when the backend authoritatively reports
+  the code no longer exists.
+- 20 new tests across referrer parsing, sync outcomes, the invite-code
+  sheet, and the home-screen snackbar wiring; 102/102 total, `flutter
+  analyze` clean.
 
 ### Docs
 

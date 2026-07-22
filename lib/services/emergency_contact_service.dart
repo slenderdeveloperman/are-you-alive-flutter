@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 import '../models/emergency_contact_models.dart';
+import 'pairing_service.dart';
 
 /// Minimal key-value contract so tests can swap in an in-memory fake and
 /// the service never depends on the plugin directly.
@@ -31,6 +32,22 @@ class SecureStorageKV implements SecureKV {
 
   @override
   Future<void> delete(String key) => _storage.delete(key: key);
+}
+
+/// Result of a Phase D status check on the inviter's device.
+enum SyncOutcome {
+  /// Nothing to report: still pending, already confirmed, or the network
+  /// check failed (timeout/offline never resets state — plan 009 Phase D).
+  unchanged,
+
+  /// The contact claimed the invite; local state flipped to confirmed.
+  confirmed,
+
+  /// The backend authoritatively reported the code no longer exists (TTL
+  /// cleanup after a reinstall, or an invalidated code). Local state was
+  /// reset so the UI can prompt a guided re-invite instead of a silent
+  /// zombie pending state.
+  resetExpired,
 }
 
 class EmergencyContactService {
@@ -131,4 +148,27 @@ class EmergencyContactService {
 
   Uri buildWhatsAppUri({required String digits, required String message}) =>
       Uri.https('wa.me', '/$digits', <String, String>{'text': message});
+
+  /// Phase D: checks the backend for a pending invite's real status. Only
+  /// acts when local state is pending — a manually-confirmed or already
+  /// verified state has nothing to gain from a check.
+  Future<SyncOutcome> syncStatus(PairingService pairingService) async {
+    final state = await load();
+    if (state == null || state.status != PairingStatus.pending) {
+      return SyncOutcome.unchanged;
+    }
+
+    final status = await pairingService.getInviteStatus(state.pairingCode);
+    switch (status) {
+      case InviteStatus.claimed:
+        await save(state.copyWith(status: PairingStatus.confirmed));
+        return SyncOutcome.confirmed;
+      case InviteStatus.notFound:
+        await clear();
+        return SyncOutcome.resetExpired;
+      case InviteStatus.pending:
+      case null:
+        return SyncOutcome.unchanged;
+    }
+  }
 }

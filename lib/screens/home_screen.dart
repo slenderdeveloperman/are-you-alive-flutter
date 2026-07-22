@@ -13,9 +13,12 @@ import '../widgets/are_you_alive_loop.dart';
 import '../widgets/glitch_text.dart';
 import '../widgets/heart_particles.dart';
 import '../models/badge_models.dart';
+import '../models/emergency_contact_models.dart';
 import '../repositories/timer_message_repository.dart';
 import '../services/badge_service.dart';
+import '../services/emergency_contact_service.dart';
 import '../services/notification_service.dart';
+import '../services/pairing_service.dart';
 import '../theme/app_layout.dart';
 import '../theme/motion_tokens.dart';
 import '../models/share_models.dart';
@@ -25,12 +28,21 @@ import '../widgets/share_preset_sheet.dart';
 enum _HeartbeatPhase { inactive, normal, erratic, expired }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, DateTime Function()? nowProvider, Random? random})
-    : _nowProvider = nowProvider,
-      _random = random;
+  const HomeScreen({
+    super.key,
+    DateTime Function()? nowProvider,
+    Random? random,
+    EmergencyContactService? emergencyContactService,
+    PairingService? pairingService,
+  }) : _nowProvider = nowProvider,
+       _random = random,
+       _emergencyContactService = emergencyContactService,
+       _pairingService = pairingService;
 
   final DateTime Function()? _nowProvider;
   final Random? _random;
+  final EmergencyContactService? _emergencyContactService;
+  final PairingService? _pairingService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -104,6 +116,36 @@ class _HomeScreenState extends State<HomeScreen>
     });
     await _refreshBadgeSnapshot();
     await _refreshDailyTimerMessage(force: true);
+    unawaited(_syncEmergencyContact());
+  }
+
+  /// Phase D (plan 009): on app open, check whether a pending emergency
+  /// contact invite has since been claimed or expired. Fire-and-forget —
+  /// never blocks the home screen on the network.
+  Future<void> _syncEmergencyContact() async {
+    final service = widget._emergencyContactService ?? EmergencyContactService();
+    final before = await service.load();
+    if (before == null || before.status != PairingStatus.pending) return;
+
+    final outcome = await service.syncStatus(
+      widget._pairingService ?? PairingService(),
+    );
+    if (!mounted) return;
+
+    switch (outcome) {
+      case SyncOutcome.confirmed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${before.name} has your back now.')),
+        );
+      case SyncOutcome.resetExpired:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Emergency contact invite expired — choose again.'),
+          ),
+        );
+      case SyncOutcome.unchanged:
+        break;
+    }
   }
 
   /// Determines if the user has already checked in today

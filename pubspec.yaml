@@ -55,6 +55,7 @@ dependencies:
   phone_numbers_parser: ^9.0.24
   flutter_secure_storage: ^10.3.1
   http: ^1.6.0
+  play_install_referrer: ^0.5.0
 
 dev_dependencies:
   flutter_test:

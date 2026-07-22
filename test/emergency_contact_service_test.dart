@@ -2,6 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:are_you_alive_flutter/models/emergency_contact_models.dart';
 import 'package:are_you_alive_flutter/services/emergency_contact_service.dart';
+import 'package:are_you_alive_flutter/services/pairing_service.dart';
+
+class FakePairingService extends PairingService {
+  FakePairingService(this.statusToReturn);
+
+  final InviteStatus? statusToReturn;
+
+  @override
+  Future<InviteStatus?> getInviteStatus(String code) async => statusToReturn;
+}
 
 class InMemoryKV implements SecureKV {
   final Map<String, String> store = <String, String>{};
@@ -150,6 +160,90 @@ void main() {
       final second = await service.getOrCreateDeviceId();
       expect(first, hasLength(32));
       expect(second, first);
+    });
+  });
+
+  group('syncStatus (Phase D)', () {
+    Future<EmergencyContactService> pendingService() async {
+      final service = _service();
+      await service.save(
+        const EmergencyContactState(
+          name: 'Ravi',
+          phone: '98765 43210',
+          pairingCode: 'AYA-7F3K2M',
+          status: PairingStatus.pending,
+        ),
+      );
+      return service;
+    }
+
+    test('claimed status flips local state to confirmed', () async {
+      final service = await pendingService();
+      final outcome = await service.syncStatus(
+        FakePairingService(InviteStatus.claimed),
+      );
+
+      expect(outcome, SyncOutcome.confirmed);
+      final saved = await service.load();
+      expect(saved!.status, PairingStatus.confirmed);
+      expect(saved.manuallyConfirmed, isFalse);
+    });
+
+    test('notFound resets local state entirely (no zombie pending)', () async {
+      final service = await pendingService();
+      final outcome = await service.syncStatus(
+        FakePairingService(InviteStatus.notFound),
+      );
+
+      expect(outcome, SyncOutcome.resetExpired);
+      expect(await service.load(), isNull);
+    });
+
+    test('pending status leaves state untouched', () async {
+      final service = await pendingService();
+      final outcome = await service.syncStatus(
+        FakePairingService(InviteStatus.pending),
+      );
+
+      expect(outcome, SyncOutcome.unchanged);
+      final saved = await service.load();
+      expect(saved!.status, PairingStatus.pending);
+    });
+
+    test('a network failure (null) leaves pending state untouched, never resets', () async {
+      final service = await pendingService();
+      final outcome = await service.syncStatus(FakePairingService(null));
+
+      expect(outcome, SyncOutcome.unchanged);
+      final saved = await service.load();
+      expect(saved!.status, PairingStatus.pending);
+    });
+
+    test('no local state is a no-op', () async {
+      final service = _service();
+      final outcome = await service.syncStatus(
+        FakePairingService(InviteStatus.claimed),
+      );
+      expect(outcome, SyncOutcome.unchanged);
+    });
+
+    test('an already-confirmed state is not re-checked', () async {
+      final service = _service();
+      await service.save(
+        const EmergencyContactState(
+          name: 'Ravi',
+          phone: '98765 43210',
+          pairingCode: 'AYA-7F3K2M',
+          status: PairingStatus.confirmed,
+        ),
+      );
+      // If this were called, resetExpired would prove it fired.
+      final outcome = await service.syncStatus(
+        FakePairingService(InviteStatus.notFound),
+      );
+      expect(outcome, SyncOutcome.unchanged);
+      final saved = await service.load();
+      expect(saved!.status, PairingStatus.confirmed);
     });
   });
 }
