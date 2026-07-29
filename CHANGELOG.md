@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased — share presets reframed under ESTD. INDICA / F.C.C.D.B. branding
+## 0.2.2+25 (2026-07-29)
+
+Packages the three sessions below (2026-07-20 through 2026-07-22) into a
+single build: Renaissance-engraving share presets, the near-miss preset,
+the full four-phase emergency-contact pairing flow, and the
+motion/accessibility/press-feedback pass. No app code changed for this
+bump — build number only.
+
+### Share presets reframed under ESTD. INDICA / F.C.C.D.B. branding
 
 Session of 2026-07-22.
 
@@ -33,11 +41,11 @@ this satisfies are logged in `ESTD-INDICA-BRAIN/decisions-log.md`
 - `flutter analyze` clean; 102/102 tests pass (one assertion updated for
   the new battery copy).
 
-## Unreleased — share fixes, near-miss preset, emergency contact (complete)
+### Share fixes, near-miss preset, emergency contact (complete)
 
 Session of 2026-07-20/22.
 
-### Share card fixes
+#### Share card fixes
 
 - Preset text vertical alignment: the layout measured line-gaps between
   lines but rendered a trailing gap after every line, so text blocks sat
@@ -47,14 +55,14 @@ Session of 2026-07-20/22.
 - Known issue flagged, not fixed: `certificate_preset.png` and
   `battery_preset.png` have swapped visual content relative to their names.
 
-### Near-miss share preset
+#### Near-miss share preset
 
 - New `ShareTheme.nearMiss` ("Near Miss") with a generated countdown-ring
   + hazard-stripe background (no static asset). Hidden until the last
   check-in landed within 6h of the 39h deadline; copy shows the real
   margin and hour mark (e.g. "T-MINUS 1h 58m. Hour 37 of 39.").
 
-### Emergency contact (plan 009, all four phases done)
+#### Emergency contact (plan 009, all four phases done)
 
 - **Phase A (client)**: OS single-contact picker (no contacts permission),
   `AYA-XXXXXX` pairing codes, WhatsApp nudge via `wa.me` deep link with
@@ -82,17 +90,17 @@ Session of 2026-07-20/22.
   sheet, and the home-screen snackbar wiring; 102/102 total, `flutter
   analyze` clean.
 
-### Docs
+#### Docs
 
 - README rewritten from Flutter boilerplate to a real project overview.
 
-## Unreleased — motion, accessibility, and press-feedback pass
+### Motion, accessibility, and press-feedback pass
 
 Range: `e46c6d0..72ad449` (10 commits). Full context on the animation work
 lives in [`plans/`](plans/README.md); this file is the narrative summary,
 including the follow-up rounds that aren't captured there.
 
-### 1. Animation audit fixes (`improve-animations`, plans 001–008)
+#### 1. Animation audit fixes (`improve-animations`, plans 001–008)
 
 All 8 findings from an animation audit, implemented and verified
 (`flutter analyze` clean, `flutter test` passing after each).
@@ -140,7 +148,7 @@ All 8 findings from an animation audit, implemented and verified
     minimum. Verified it fails against the pre-fix code (observed a 170ms
     truncated leg) before trusting it.
 
-### 2. Engineering review fixes (`plan-eng-review`)
+#### 2. Engineering review fixes (`plan-eng-review`)
 
 - Consolidated the four independent raw `WidgetsBinding` reduced-motion
   checks down to the shared `MotionTokens.reducedMotion` getter.
@@ -149,7 +157,7 @@ All 8 findings from an animation audit, implemented and verified
 - Added `test/badges_screen_test.dart` (new) covering the badge celebration
   scale animation.
 
-### 3. Apple design review (`apple-design`) — press feedback
+#### 3. Apple design review (`apple-design`) — press feedback
 
 Per "respond on pointer-down, not on release": `BottomActionPill`'s three
 icon buttons and the badge grid tap target were bare `GestureDetector`s with
@@ -162,7 +170,7 @@ zero visual response until the tap fully completed. Both now reuse
 - Icon buttons' touch target bumped from ~40px to the 44px minimum via
   wider padding.
 
-### 4. Code review fix — stale pending heartbeat profile
+#### 4. Code review fix — stale pending heartbeat profile
 
 `_applyHeartbeatPhase` now clears `_pendingBeatDuration`/
 `_pendingScaleMultiplier` on every phase change, not just when consuming
@@ -171,12 +179,12 @@ reached (phase changed before the next beat boundary) stayed queued and
 could be silently reapplied by `_onHeartbeatStatusChanged` during a later,
 unrelated erratic session.
 
-### Verification
+#### Verification
 
 `flutter analyze` clean throughout; `flutter test` 51/51 passing after the
 final fix. Pushed to `origin/working`.
 
-### Known open items (not yet fixed — surfaced by code review, unscoped)
+#### Known open items (not yet fixed — surfaced by code review, unscoped)
 
 - `badges_screen.dart:31` — `_isRecentlyUnlocked` doesn't guard against a
   negative `Duration` on clock skew.
