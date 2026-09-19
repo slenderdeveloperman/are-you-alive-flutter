@@ -58,7 +58,7 @@ export async function markRetry(
     update public.witness_alert_outbox
     set status = 'pending',
         lease_until = null,
-        next_attempt_at = now() + (${seconds} || ' seconds')::interval,
+        next_attempt_at = now() + make_interval(secs => ${seconds}),
         last_error = left(${error}, 1000)
     where id = ${id}::bigint
   `;
