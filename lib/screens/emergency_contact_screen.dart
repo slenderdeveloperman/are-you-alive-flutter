@@ -10,6 +10,7 @@ import '../models/emergency_contact_models.dart';
 import '../services/emergency_contact_service.dart';
 import '../services/pairing_service.dart';
 import '../widgets/animated_button.dart';
+import '../theme/bureau_tokens.dart';
 
 class EmergencyContactScreen extends StatefulWidget {
   const EmergencyContactScreen({
@@ -192,9 +193,9 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BureauTokens.ink,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: BureauTokens.ink,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -204,7 +205,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
             fontFamily: 'monospace',
             letterSpacing: 2,
             fontSize: 14,
-            color: Colors.white,
+            color: BureauTokens.ink,
           ),
         ),
       ),
@@ -214,7 +215,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: _loading
               ? const Center(
-                  child: CircularProgressIndicator(color: Colors.redAccent),
+                  child: CircularProgressIndicator(color: BureauTokens.accent),
                 )
               : _buildBody(),
         ),
@@ -307,7 +308,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
             fontSize: 22,
             letterSpacing: 3,
             fontWeight: FontWeight.w700,
-            color: Colors.redAccent,
+            color: BureauTokens.accent,
           ),
         ),
         const Spacer(),
@@ -340,7 +341,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Spacer(),
-        const Icon(Icons.verified_outlined, size: 56, color: Colors.greenAccent),
+        const Icon(Icons.verified_outlined, size: 56, color: BureauTokens.active),
         const SizedBox(height: 24),
         Text(
           '${state.name} / WITNESS CONFIRMED',
@@ -397,7 +398,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.redAccent,
+          color: BureauTokens.accent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
