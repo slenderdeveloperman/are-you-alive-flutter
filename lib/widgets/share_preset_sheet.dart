@@ -293,7 +293,9 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
           final enabled = _selectedFields.contains(field);
           final required = _selectedPreset.defaultFields.contains(field);
 
-          return SwitchListTile(
+          return Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
             value: enabled,
             onChanged: required
                 ? null
@@ -329,6 +331,7 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
                     ),
                   )
                 : null,
+            ),
           );
         }),
       ],
