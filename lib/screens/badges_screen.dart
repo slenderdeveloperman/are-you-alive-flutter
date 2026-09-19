@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/badge_models.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/cylindrical_badge_chip.dart';
+import '../theme/motion_tokens.dart';
 
 class BadgesScreen extends StatefulWidget {
   const BadgesScreen({
@@ -28,7 +29,9 @@ class _BadgesScreenState extends State<BadgesScreen> {
     final earnedAtMs = badge.earnedAtMs;
     if (!badge.earned || earnedAtMs == null) return false;
     final earnedAt = DateTime.fromMillisecondsSinceEpoch(earnedAtMs);
-    return _now().difference(earnedAt) <= _recentUnlockThreshold;
+    final age = _now().difference(earnedAt);
+    if (age.isNegative) return false;
+    return age <= _recentUnlockThreshold;
   }
 
   @override
@@ -147,7 +150,7 @@ class _BadgeGridItemState extends State<_BadgeGridItem>
         curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
-    if (widget.celebrateUnlock) {
+    if (widget.celebrateUnlock && !MotionTokens.reducedMotion) {
       _controller.forward();
     } else {
       _controller.value = 1.0;
