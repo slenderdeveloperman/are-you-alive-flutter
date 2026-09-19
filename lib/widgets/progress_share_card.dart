@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/share_models.dart';
 import 'near_miss_background_painter.dart';
 import 'terminal_texture_painter.dart';
+import 'filing_block.dart';
 
 class ProgressShareCard extends StatelessWidget {
   const ProgressShareCard({super.key, required this.content});
@@ -31,7 +32,10 @@ class ProgressShareCard extends StatelessWidget {
             1.0,
             height,
           );
-          final maxTextWidth = (width - (horizontalInset * 2)).clamp(1.0, width);
+          final maxTextWidth = (width - (horizontalInset * 2)).clamp(
+            1.0,
+            width,
+          );
           final fitted = _fitTextLayout(
             lines: content.imageLines.take(5).toList(),
             baseStyle: textStyle,
@@ -41,7 +45,8 @@ class ProgressShareCard extends StatelessWidget {
           );
 
           final textTop =
-              topInset + ((zoneHeight - fitted.totalHeight).clamp(0.0, zoneHeight) / 2);
+              topInset +
+              ((zoneHeight - fitted.totalHeight).clamp(0.0, zoneHeight) / 2);
           final textBottom = (height - textTop - fitted.totalHeight)
               .clamp(0.0, height)
               .toDouble();
@@ -57,9 +62,7 @@ class ProgressShareCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Container(color: Colors.white),
-                ),
+                Positioned.fill(child: Container(color: Colors.white)),
                 Positioned.fill(
                   child: content.preset.backgroundAssetPath.isEmpty
                       ? const Stack(
@@ -74,6 +77,14 @@ class ProgressShareCard extends StatelessWidget {
                           fit: BoxFit.contain,
                           alignment: Alignment.topCenter,
                         ),
+                ),
+                Positioned(
+                  top: 14,
+                  left: 14,
+                  child: FilingStamp(
+                    status: _stampStatus(content.preset.theme),
+                    inverted: content.preset.theme == ShareTheme.nearMiss,
+                  ),
                 ),
                 Positioned(
                   left: 0,
@@ -197,8 +208,13 @@ class ProgressShareCard extends StatelessWidget {
     const scaleCandidates = <double>[1.0, 0.96, 0.92, 0.88, 0.84, 0.8, 0.76];
 
     for (final scale in scaleCandidates) {
-      final scaledFontSize = ((baseStyle.fontSize ?? 14) * scale).clamp(12.0, 40.0);
-      final scaledStyle = baseStyle.copyWith(fontSize: scaledFontSize.toDouble());
+      final scaledFontSize = ((baseStyle.fontSize ?? 14) * scale).clamp(
+        12.0,
+        40.0,
+      );
+      final scaledStyle = baseStyle.copyWith(
+        fontSize: scaledFontSize.toDouble(),
+      );
       final scaledGap = (baseLineGap * scale).clamp(4.0, 12.0).toDouble();
 
       for (var count = lines.length; count >= 1; count--) {
@@ -215,7 +231,12 @@ class ProgressShareCard extends StatelessWidget {
           lineGap: scaledGap,
         );
 
-        if (total <= maxHeight) {
+        if (total <= maxHeight &&
+            _fitsTextBlock(
+              lines: candidate,
+              style: scaledStyle,
+              maxWidth: maxWidth,
+            )) {
           return _FittedTextLayout(
             lines: candidate,
             style: scaledStyle,
@@ -227,7 +248,11 @@ class ProgressShareCard extends StatelessWidget {
     }
 
     final fallbackStyle = baseStyle.copyWith(fontSize: 12);
-    final fallbackLine = '${lines.first}…';
+    final fallbackLine = _fitLineToWidth(
+      lines.first,
+      style: fallbackStyle,
+      maxWidth: maxWidth,
+    );
     final fallbackHeight = _measureTextBlockHeight(
       lines: <String>[fallbackLine],
       style: fallbackStyle,
@@ -241,6 +266,62 @@ class ProgressShareCard extends StatelessWidget {
       lineGap: 4,
       totalHeight: fallbackHeight,
     );
+  }
+
+  bool _fitsTextBlock({
+    required List<String> lines,
+    required TextStyle style,
+    required double maxWidth,
+  }) {
+    return lines.every((line) {
+      final painter = TextPainter(
+        text: TextSpan(text: line, style: style),
+        maxLines: 1,
+        ellipsis: '…',
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: maxWidth);
+      return !painter.didExceedMaxLines;
+    });
+  }
+
+  String _fitLineToWidth(
+    String line, {
+    required TextStyle style,
+    required double maxWidth,
+  }) {
+    final characters = line.runes.toList();
+    if (characters.isEmpty) return line;
+
+    String candidateFor(int count) => count >= characters.length
+        ? line
+        : '${String.fromCharCodes(characters.take(count))}…';
+
+    if (_fitsTextBlock(
+      lines: <String>[line],
+      style: style,
+      maxWidth: maxWidth,
+    )) {
+      return line;
+    }
+
+    var low = 0;
+    var high = characters.length - 1;
+    var best = '…';
+    while (low <= high) {
+      final middle = (low + high) ~/ 2;
+      final candidate = candidateFor(middle);
+      if (_fitsTextBlock(
+        lines: <String>[candidate],
+        style: style,
+        maxWidth: maxWidth,
+      )) {
+        best = candidate;
+        low = middle + 1;
+      } else {
+        high = middle - 1;
+      }
+    }
+    return best;
   }
 
   double _measureTextBlockHeight({
@@ -344,6 +425,18 @@ class ProgressShareCard extends StatelessWidget {
             ),
           ],
         );
+    }
+  }
+
+  String _stampStatus(ShareTheme theme) {
+    switch (theme) {
+      case ShareTheme.nearMiss:
+        return 'CLOSE-CALL';
+      case ShareTheme.certificate:
+      case ShareTheme.battery:
+      case ShareTheme.timeServed:
+      case ShareTheme.proofOfLife:
+        return 'EXTRACT';
     }
   }
 }
