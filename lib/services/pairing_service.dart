@@ -80,6 +80,21 @@ class PairingService {
     }
   }
 
+  /// Removes this subject's pairing, watchdog, and queued operational alert
+  /// state. Returns true when a matching relationship was revoked, false when
+  /// the server found no match, and null when unreachable.
+  Future<bool?> revokePairing({
+    required String code,
+    required String inviterId,
+  }) async {
+    final result = await _rpc('revoke_pairing', <String, String>{
+      'p_code': code,
+      'p_inviter_id': inviterId,
+    });
+    if (result == null) return null;
+    return result == true;
+  }
+
   /// Calls a Data API RPC as the anonymous role. Returns the decoded JSON
   /// result, or null on any transport-level failure.
   Future<Object?> _rpc(String function, Map<String, Object?> args) async {
