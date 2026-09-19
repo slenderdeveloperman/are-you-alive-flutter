@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/bureau_tokens.dart';
 import 'animated_button.dart';
 
 class BottomActionPill extends StatelessWidget {
@@ -19,48 +20,33 @@ class BottomActionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      constraints: const BoxConstraints(maxWidth: 390),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        color: BureauTokens.ink,
+        border: Border.all(color: BureauTokens.ruleOnInk),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildIcon(
-            icon: Icons.share_outlined,
-            onTap: onShareTap,
-            semanticLabel: 'Register extract',
-          ),
-          const SizedBox(width: 32),
-          _buildIcon(
-            icon: Icons.military_tech,
-            onTap: onBadgeTap,
-            semanticLabel: 'Citations',
-          ),
-          const SizedBox(width: 32),
-          _buildIcon(
-            icon: Icons.shield_outlined,
-            onTap: onGuardianTap,
-            semanticLabel: 'Designated witness',
-          ),
-          const SizedBox(width: 32),
-          _buildIcon(
-            icon: Icons.build,
-            onTap: onBuilderTap,
-            semanticLabel: 'Builder',
-          ),
+          _buildAction(icon: Icons.share_outlined, onTap: onShareTap, semanticLabel: 'Register extract', visibleLabel: 'EXTRACT'),
+          _rule(),
+          _buildAction(icon: Icons.military_tech_outlined, onTap: onBadgeTap, semanticLabel: 'Citations', visibleLabel: 'CITATIONS'),
+          _rule(),
+          _buildAction(icon: Icons.shield_outlined, onTap: onGuardianTap, semanticLabel: 'Designated witness', visibleLabel: 'WITNESS'),
+          _rule(),
+          _buildAction(icon: Icons.build_outlined, onTap: onBuilderTap, semanticLabel: 'Builder', visibleLabel: 'BUILD'),
         ],
       ),
     );
   }
 
-  Widget _buildIcon({
+  Widget _rule() => Container(width: 1, height: 48, color: BureauTokens.ruleOnInk);
+
+  Widget _buildAction({
     required IconData icon,
     required VoidCallback onTap,
     required String semanticLabel,
+    required String visibleLabel,
   }) {
     return Semantics(
       button: true,
@@ -68,11 +54,26 @@ class BottomActionPill extends StatelessWidget {
       child: AnimatedButton(
         onPressed: onTap,
         enableGlow: false,
-        pressedScale: 0.88,
-        child: Padding(
-          // 24px icon + 10px padding on each side = 44px touch target.
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, color: Colors.white, size: 24),
+        pressedScale: 0.97,
+        child: SizedBox(
+          width: 78,
+          height: 48,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: BureauTokens.paper, size: 17),
+              const SizedBox(height: 4),
+              Text(
+                visibleLabel,
+                maxLines: 1,
+                style: BureauTokens.filingLabel.copyWith(
+                  color: BureauTokens.mutedOnInk,
+                  fontSize: 8,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
