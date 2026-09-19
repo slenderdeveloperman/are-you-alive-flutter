@@ -14,11 +14,14 @@ import '../widgets/glitch_text.dart';
 import '../widgets/heart_particles.dart';
 import '../models/badge_models.dart';
 import '../models/emergency_contact_models.dart';
+import '../models/existence_record.dart';
 import '../repositories/timer_message_repository.dart';
 import '../services/badge_service.dart';
 import '../services/emergency_contact_service.dart';
+import '../services/existence_record_service.dart';
 import '../services/notification_service.dart';
 import '../services/pairing_service.dart';
+import '../services/watchdog_service.dart';
 import '../theme/app_layout.dart';
 import '../theme/motion_tokens.dart';
 import '../models/share_models.dart';
@@ -86,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   static const Duration _normalHeartbeatDuration = Duration(milliseconds: 600);
   static const Duration _erraticWindowStart = Duration(hours: 24);
-  static const Duration _expiryThreshold = Duration(hours: 39);
+  static const Duration _expiryThreshold = ExistenceRecord.filingWindow;
 
   @override
   void initState() {
@@ -176,24 +179,10 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// Check if auto-reset is needed, schedule notification, then initialize countdown
+  /// Reconcile display state from the canonical filing. A lapsed filing stays
+  /// lapsed until the user explicitly files again; the witness grace period
+  /// must never silently create a new local deadline.
   Future<void> _resetTimerAndCountdown() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lastActiveTimestamp = prefs.getInt('lastActiveTimestamp');
-
-    if (lastActiveTimestamp != null) {
-      final elapsed = _now().millisecondsSinceEpoch - lastActiveTimestamp;
-      final autoResetThreshold = const Duration(
-        hours: 41,
-      ).inMilliseconds; // 39h timer + 2h grace
-
-      if (elapsed >= autoResetThreshold) {
-        // Auto-reset: more than 41 hours have passed since last check-in
-        // Schedule a fresh notification (this also updates lastActiveTimestamp)
-        await _scheduleNotification();
-      }
-    }
-
     await _initCountdown();
   }
 
@@ -234,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (_notificationTimestamp == null) return 0.0;
 
     // Calculate time-based decay
-    final totalDuration = const Duration(hours: 39).inMilliseconds;
+    final totalDuration = ExistenceRecord.filingWindow.inMilliseconds;
     final lastActiveTimestamp = _notificationTimestamp! - totalDuration;
     final elapsed = _now().millisecondsSinceEpoch - lastActiveTimestamp;
     final timeDecay = (elapsed / totalDuration).clamp(0.0, 1.0);
@@ -322,15 +311,33 @@ class _HomeScreenState extends State<HomeScreen>
     // Increment streak if new day
     await _incrementStreakIfNewDay();
 
-    // Always schedule a fresh notification on button click (resets timer to 39:00:00)
-    await _scheduleNotification();
+    // Filing is the only operation allowed to move the 39-hour deadline.
+    final record = await ExistenceRecordService(now: _now).fileNow();
+    await _scheduleNotification(from: record.lastCheckIn);
+    unawaited(_syncWatchdog(record));
     await _initCountdown();
     await _refreshBadgeSnapshot();
     await _refreshDailyTimerMessage(force: true);
   }
 
-  Future<void> _scheduleNotification() async {
-    await NotificationService().scheduleInactivityNotification();
+  Future<void> _scheduleNotification({DateTime? from}) async {
+    await NotificationService().scheduleInactivityNotification(from: from);
+  }
+
+  Future<void> _syncWatchdog(ExistenceRecord record) async {
+    final checkedInAt = record.lastCheckIn;
+    if (checkedInAt == null) return;
+
+    final contactService =
+        widget._emergencyContactService ?? EmergencyContactService();
+    final contact = await contactService.load();
+    if (contact == null || contact.status != PairingStatus.confirmed) return;
+
+    final subjectId = await contactService.getOrCreateDeviceId();
+    await WatchdogService().syncCheckIn(
+      subjectId: subjectId,
+      checkedInAt: checkedInAt,
+    );
   }
 
   Future<void> _initCountdown() async {
@@ -342,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (lastActiveTimestamp != null) {
       // Notification is scheduled for 39 hours after lastActiveTimestamp
       _notificationTimestamp =
-          lastActiveTimestamp + const Duration(hours: 39).inMilliseconds;
+          lastActiveTimestamp + ExistenceRecord.filingWindow.inMilliseconds;
     }
     _reconcileHeartbeatPhase(lastActiveTimestamp: lastActiveTimestamp);
     _calculateRemainingTime();
