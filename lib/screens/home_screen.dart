@@ -140,14 +140,15 @@ class _HomeScreenState extends State<HomeScreen>
     switch (outcome) {
       case SyncOutcome.confirmed:
         final record = await ExistenceRecordService(now: _now).load();
+        if (!mounted) return;
         unawaited(_syncWatchdog(record));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${before.name} has your back now.')),
+          SnackBar(content: Text('${before.name} / witness confirmed.')),
         );
       case SyncOutcome.resetExpired:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Emergency contact invite expired — choose again.'),
+            content: Text('Witness designation expired — designate again.'),
           ),
         );
       case SyncOutcome.unchanged:
