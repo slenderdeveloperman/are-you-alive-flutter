@@ -10,7 +10,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  testWidgets('proceed button is disabled until a non-empty name is entered', (
+  testWidgets('open-record button is disabled until a non-empty name is entered', (
     tester,
   ) async {
     var completed = false;
@@ -18,7 +18,7 @@ void main() {
       MaterialApp(home: WelcomeScreen(onComplete: () => completed = true)),
     );
 
-    await tester.tap(find.text('proceed'));
+    await tester.tap(find.text('OPEN RECORD'));
     await tester.pump();
 
     expect(completed, isFalse);
@@ -36,7 +36,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField), '   ');
       await tester.pump();
-      await tester.tap(find.text('proceed'));
+      await tester.tap(find.text('OPEN RECORD'));
       await tester.pump();
 
       expect(
@@ -59,7 +59,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField), '  Yash  ');
       await tester.pump();
-      await tester.tap(find.text('proceed'));
+      await tester.tap(find.text('OPEN RECORD'));
       await tester.pump();
 
       expect(completed, isTrue);
@@ -70,7 +70,7 @@ void main() {
   );
 
   testWidgets(
-    'the proceed AnimatedButton has a null onPressed callback while the name field is empty, '
+    'the open-record AnimatedButton has a null onPressed callback while the name field is empty, '
     'and a non-null callback once text is entered',
     (tester) async {
       await tester.pumpWidget(
@@ -99,7 +99,7 @@ void main() {
   );
 
   testWidgets(
-    'clearing the name field back to empty after it was valid disables proceed again',
+    'clearing the name field back to empty after it was valid disables open-record again',
     (tester) async {
       var completed = false;
       await tester.pumpWidget(
@@ -110,7 +110,7 @@ void main() {
       await tester.pump();
       await tester.enterText(find.byType(TextField), '');
       await tester.pump();
-      await tester.tap(find.text('proceed'));
+      await tester.tap(find.text('OPEN RECORD'));
       await tester.pump();
 
       expect(completed, isFalse);
