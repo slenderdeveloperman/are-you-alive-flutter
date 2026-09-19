@@ -76,7 +76,7 @@ void main() {
       find.byKey(const ValueKey('emergency-pending-state')),
       findsOneWidget,
     );
-    expect(find.text('Waiting on Ravi'), findsOneWidget);
+    expect(find.text('Awaiting Ravi'), findsOneWidget);
 
     final codeText = tester.widget<Text>(
       find.byKey(const ValueKey('emergency-pairing-code')),
@@ -127,7 +127,7 @@ void main() {
       find.byKey(const ValueKey('emergency-confirmed-state')),
       findsOneWidget,
     );
-    expect(find.text('Ravi has your back'), findsOneWidget);
+    expect(find.text('Ravi / WITNESS CONFIRMED'), findsOneWidget);
     expect(find.text('confirmed by you — not yet verified'), findsOneWidget);
 
     final saved = await service.load();
