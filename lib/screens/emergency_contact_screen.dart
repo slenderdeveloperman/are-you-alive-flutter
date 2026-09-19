@@ -199,7 +199,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'designated contact',
+          'designated witness',
           style: TextStyle(
             fontFamily: 'monospace',
             letterSpacing: 2,
@@ -243,7 +243,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Pick one person to pair with your record.\n\n'
+          'Designate one witness to pair with your record.\n\n'
           'Pairing confirms who you trust; automatic missed-deadline '
           'alerts are not active yet.',
           textAlign: TextAlign.center,
@@ -257,7 +257,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         const Spacer(),
         _primaryButton(
           key: const ValueKey('emergency-choose-button'),
-          label: 'DESIGNATE CONTACT',
+          label: 'DESIGNATE WITNESS',
           onPressed: _chooseContact,
         ),
       ],
@@ -277,7 +277,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Waiting on ${state.name}',
+          'Awaiting ${state.name}',
           key: const ValueKey('emergency-pending-title'),
           textAlign: TextAlign.center,
           style: const TextStyle(
@@ -343,7 +343,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         const Icon(Icons.verified_outlined, size: 56, color: Colors.greenAccent),
         const SizedBox(height: 24),
         Text(
-          '${state.name} has your back',
+          '${state.name} / WITNESS CONFIRMED',
           key: const ValueKey('emergency-confirmed-title'),
           textAlign: TextAlign.center,
           style: const TextStyle(
@@ -376,7 +376,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       key: const ValueKey('emergency-remove-button'),
       onPressed: _removeContact,
       child: Text(
-        'change contact',
+        'change witness',
         style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 12,
