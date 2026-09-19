@@ -32,19 +32,19 @@ class BottomActionPill extends StatelessWidget {
           _buildIcon(
             icon: Icons.share_outlined,
             onTap: onShareTap,
-            semanticLabel: 'Share',
+            semanticLabel: 'Register extract',
           ),
           const SizedBox(width: 32),
           _buildIcon(
             icon: Icons.military_tech,
             onTap: onBadgeTap,
-            semanticLabel: 'Badges',
+            semanticLabel: 'Citations',
           ),
           const SizedBox(width: 32),
           _buildIcon(
             icon: Icons.shield_outlined,
             onTap: onGuardianTap,
-            semanticLabel: 'Emergency contact',
+            semanticLabel: 'Designated witness',
           ),
           const SizedBox(width: 32),
           _buildIcon(
