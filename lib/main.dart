@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/splash_screen.dart';
@@ -156,13 +157,20 @@ class _AppRouterState extends State<AppRouter> with WidgetsBindingObserver {
 
     // Rising again is an explicit new filing, so it may move the deadline.
     final record = await ExistenceRecordService().fileNow();
-    await NotificationService().scheduleInactivityNotification(
-      from: record.lastCheckIn,
-    );
 
-    setState(() {
-      _hasDied = false;
-    });
+    if (mounted) {
+      setState(() {
+        _hasDied = false;
+      });
+    }
+
+    // Reminder scheduling is best-effort and must never hold the subject on
+    // the eulogy screen after the filing itself has succeeded.
+    unawaited(
+      NotificationService().scheduleInactivityNotification(
+        from: record.lastCheckIn,
+      ),
+    );
   }
 
   /// Returns a unique key for the current screen to trigger AnimatedSwitcher transitions.
