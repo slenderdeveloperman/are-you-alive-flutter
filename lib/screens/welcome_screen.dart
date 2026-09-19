@@ -105,7 +105,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
               // Title
               Text(
-                'identify yourself',
+                'SUBJECT RECORD',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 22,
@@ -121,7 +121,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Row(
                 children: [
                   Text(
-                    '> ',
+                    'NAME ',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 28,
@@ -175,7 +175,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         borderRadius: BorderRadius.circular(2),
                       ),
                       child: Text(
-                        'proceed',
+                        'OPEN RECORD',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 16,
@@ -195,7 +195,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 key: const ValueKey('welcome-invite-code-button'),
                 onPressed: _openInviteCodeSheet,
                 child: Text(
-                  'have an invite code?',
+                  'accept witness designation',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 12,
@@ -272,7 +272,7 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
     setState(() {
       _submitting = false;
       _message = switch (result) {
-        ClaimResult.claimed => 'Accepted — you\'re their emergency contact.',
+        ClaimResult.claimed => 'Accepted — you are their designated witness.',
         ClaimResult.alreadyClaimed => 'This invite was already accepted.',
         ClaimResult.notFound => 'That code doesn\'t match an active invite.',
         null => 'Couldn\'t reach the server — check your connection.',
@@ -307,7 +307,7 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Someone chose you as their emergency contact.',
+                'Someone designated you as a witness to their record.',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 14,
@@ -357,7 +357,7 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
                   backgroundColor: Colors.redAccent,
                   foregroundColor: Colors.white,
                 ),
-                child: Text(_submitting ? 'Checking…' : 'Accept'),
+                child: Text(_submitting ? 'CHECKING…' : 'ACCEPT DESIGNATION'),
               ),
             ],
           ),
