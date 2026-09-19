@@ -8,9 +8,6 @@ import 'emergency_contact_screen.dart';
 import '../widgets/heart_painter.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/bottom_action_pill.dart';
-import '../widgets/typewriter_text.dart';
-import '../widgets/are_you_alive_loop.dart';
-import '../widgets/glitch_text.dart';
 import '../widgets/heart_particles.dart';
 import '../models/badge_models.dart';
 import '../models/emergency_contact_models.dart';
@@ -472,14 +469,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   TextSpan _buildTimerMessageSpan(String message) {
-    const baseStyle = TextStyle(
-      fontFamily: 'monospace',
-      fontSize: 17,
+    final baseStyle = BureauTokens.filingValue.copyWith(
+      fontSize: 15,
       height: 1.5,
-      color: Colors.white,
+      color: BureauTokens.mutedOnInk,
     );
     final highlightStyle = baseStyle.copyWith(
-      color: Colors.red.withValues(alpha: 0.9),
+      color: BureauTokens.paper,
+      fontWeight: FontWeight.w600,
     );
 
     final currentCountdown = _formatDuration(_remainingTime);
@@ -946,29 +943,22 @@ class _HomeScreenState extends State<HomeScreen>
                                       height: AppLayout.buttonHeight,
                                       child: AnimatedButton(
                                         onPressed: _onCheckIn,
-                                        glowColor: Colors.red,
+                                        enableGlow: false,
+                                        pressedScale: 0.98,
                                         child: Container(
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
+                                            color: BureauTokens.paper,
                                             border: Border.all(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.3,
-                                              ),
+                                              color: BureauTokens.paper,
                                             ),
                                           ),
-                                          child: const Text(
+                                          child: Text(
                                             "I'M ALIVE",
-                                            style: TextStyle(
-                                              fontFamily: 'monospace',
-                                              fontSize: 18,
-                                              letterSpacing: 2,
-                                              color: Colors.white,
+                                            style: BureauTokens.filingLabel.copyWith(
+                                              fontSize: 14,
+                                              letterSpacing: 2.2,
+                                              color: BureauTokens.ink,
                                             ),
                                           ),
                                         ),
@@ -984,30 +974,22 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(height: 12),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 30),
-                            child: GlitchText(
-                              key: const ValueKey('timer-message-glitch'),
-                              textSpan: _buildTimerMessageSpan(
+                            child: Text.rich(
+                              _buildTimerMessageSpan(
                                 _timerMessage.isNotEmpty
                                     ? _timerMessage
                                     : _fallbackTimerMessage(),
                               ),
+                              key: const ValueKey('timer-message-glitch'),
                               textAlign: TextAlign.center,
-                              glitchInterval: const Duration(seconds: 3),
-                              glitchDuration: const Duration(milliseconds: 80),
                             ),
                           ),
-
-                          // "check back in tomorrow" message with typewriter effect
                           const SizedBox(height: 14),
-                          TypewriterText(
+                          Text(
+                            'FILING RECEIVED / RECORD ACTIVE',
                             key: const ValueKey('typewriter-tomorrow'),
-                            text: 'FILING RECEIVED / RECORD ACTIVE',
-                            charDuration: const Duration(milliseconds: 40),
-                            style: TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 15,
-                              color: Colors.red.withValues(alpha: 0.9),
-                              fontStyle: FontStyle.italic,
+                            style: BureauTokens.filingLabel.copyWith(
+                              color: BureauTokens.active,
                             ),
                           ),
                         ],
@@ -1016,21 +998,6 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
               ],
-            ),
-          ),
-          // Animated "ARE YOU ALIVE?" loop positioned just above the bottom pill
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 88 + MediaQuery.of(context).padding.bottom,
-            child: const IgnorePointer(
-              ignoring: true,
-              child: Center(
-                child: SizedBox(
-                  height: 96,
-                  child: AreYouAliveLoop(),
-                ),
-              ),
             ),
           ),
           if (_badgeSnapshot != null)
