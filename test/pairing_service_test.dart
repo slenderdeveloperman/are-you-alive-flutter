@@ -83,17 +83,29 @@ void main() {
 
     backend.rpcResults['claim_invite'] = 'claimed';
     expect(
-      await service.claimInvite(code: 'AYA-000000', claimerId: 'b' * 32),
+      await service.claimInvite(
+        code: 'AYA-000000',
+        claimerId: 'b' * 32,
+        deliveryEmail: 'witness@example.com',
+      ),
       ClaimResult.claimed,
     );
     backend.rpcResults['claim_invite'] = 'already_claimed';
     expect(
-      await service.claimInvite(code: 'AYA-000000', claimerId: 'b' * 32),
+      await service.claimInvite(
+        code: 'AYA-000000',
+        claimerId: 'b' * 32,
+        deliveryEmail: 'witness@example.com',
+      ),
       ClaimResult.alreadyClaimed,
     );
     backend.rpcResults['claim_invite'] = 'not_found';
     expect(
-      await service.claimInvite(code: 'AYA-000000', claimerId: 'b' * 32),
+      await service.claimInvite(
+        code: 'AYA-000000',
+        claimerId: 'b' * 32,
+        deliveryEmail: 'witness@example.com',
+      ),
       ClaimResult.notFound,
     );
   });
@@ -148,7 +160,11 @@ void main() {
     );
     expect(await service.getInviteStatus('AYA-000000'), isNull);
     expect(
-      await service.claimInvite(code: 'AYA-000000', claimerId: 'b' * 32),
+      await service.claimInvite(
+        code: 'AYA-000000',
+        claimerId: 'b' * 32,
+        deliveryEmail: 'witness@example.com',
+      ),
       isNull,
     );
   });
