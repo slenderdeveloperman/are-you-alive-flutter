@@ -88,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen>
   BadgeSnapshot? _badgeSnapshot;
   String _timerMessage = '';
   String? _lastTimerMessageDate;
+  bool? _notificationsEnabled;
 
   static const Duration _normalHeartbeatDuration = Duration(milliseconds: 600);
   static const Duration _erraticWindowStart = Duration(hours: 24);
@@ -111,12 +112,14 @@ class _HomeScreenState extends State<HomeScreen>
     final hasCheckedInToday = await _hasCheckedInToday();
 
     final loadedStreak = prefs.getInt('streakCount') ?? 0;
+    final notificationsEnabled = prefs.getBool('notificationsEnabled');
     setState(() {
       _userName = prefs.getString('userName') ?? 'human';
       _previousStreak = loadedStreak; // Set both to same value on initial load
       _streakCount = loadedStreak;
       _checkInsSinceDeath = prefs.getInt('checkInsSinceDeath') ?? 3;
       _hasCheckedIn = hasCheckedInToday; // Set based on calendar day
+      _notificationsEnabled = notificationsEnabled;
       _activeDayKey = dateOnly(_now());
     });
     await _refreshBadgeSnapshot();
@@ -139,6 +142,8 @@ class _HomeScreenState extends State<HomeScreen>
 
     switch (outcome) {
       case SyncOutcome.confirmed:
+        final record = await ExistenceRecordService(now: _now).load();
+        unawaited(_syncWatchdog(record));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${before.name} has your back now.')),
         );
@@ -174,6 +179,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       // Reset timer when app comes back to foreground
       await _resetTimerAndCountdown();
+      unawaited(NotificationService().reconcileFromStoredFiling());
 
       // Reload user data (streak might have changed)
       await _loadUserData();
@@ -323,7 +329,12 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _scheduleNotification({DateTime? from}) async {
-    await NotificationService().scheduleInactivityNotification(from: from);
+    final enabled =
+        await NotificationService().scheduleInactivityNotification(from: from);
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = enabled;
+    });
   }
 
   Future<void> _syncWatchdog(ExistenceRecord record) async {
@@ -790,6 +801,14 @@ class _HomeScreenState extends State<HomeScreen>
                                 record.deadline == null
                                     ? 'AWAITING FIRST FILING'
                                     : _formatDuration(record.remaining),
+                              ),
+                              FilingField(
+                                'REMINDER',
+                                _notificationsEnabled == false
+                                    ? 'DISABLED'
+                                    : _notificationsEnabled == true
+                                    ? 'LOCAL / 30H'
+                                    : 'NOT SET',
                               ),
                             ],
                           ),
