@@ -51,30 +51,36 @@ class NotificationService {
 
   Future<bool> requestPermission() async {
     await init();
-    var granted = true;
+    try {
+      var granted = true;
 
-    final androidPlugin = _notifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-    if (androidPlugin != null) {
-      granted = await androidPlugin.requestNotificationsPermission() ?? false;
-    }
+      final androidPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      if (androidPlugin != null) {
+        granted =
+            await androidPlugin.requestNotificationsPermission() ?? false;
+      }
 
-    final iosPlugin = _notifications
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >();
-    if (iosPlugin != null) {
-      granted =
-          await iosPlugin.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          ) ??
-          false;
+      final iosPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      if (iosPlugin != null) {
+        granted =
+            await iosPlugin.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            ) ??
+            false;
+      }
+      return granted;
+    } catch (e) {
+      debugPrint('Failed to request notification permission: $e');
+      return false;
     }
-    return granted;
   }
 
   void _onNotificationTapped(NotificationResponse response) {
