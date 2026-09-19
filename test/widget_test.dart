@@ -102,8 +102,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('badges'), findsOneWidget);
-    expect(find.textContaining('unlocked'), findsWidgets);
+    expect(find.text('citations'), findsOneWidget);
+    expect(find.textContaining('filed'), findsWidgets);
   });
 
   testWidgets('Splash screen renders spiral animation', (
@@ -163,7 +163,7 @@ void main() {
       // pump's single simulated frame.
       await tester.pump(const Duration(milliseconds: 700));
 
-      expect(find.textContaining('day alive'), findsOneWidget);
+      expect(find.textContaining('consecutive filing'), findsOneWidget);
       expect(find.byKey(const ValueKey('live-countdown-text')), findsNothing);
 
       final glitchFinder = find.byKey(const ValueKey('timer-message-glitch'));
@@ -190,7 +190,7 @@ void main() {
       final tomorrowFinder = find.byKey(const ValueKey('typewriter-tomorrow'));
       expect(tomorrowFinder, findsOneWidget);
       final tomorrowWidget = tester.widget<TypewriterText>(tomorrowFinder);
-      expect(tomorrowWidget.text, 'CHECK BACK IN TOMORROW');
+      expect(tomorrowWidget.text, 'FILING RECEIVED / RECORD ACTIVE');
 
       final timerText = tester.widget<Text>(richTextFinder);
       final span = timerText.textSpan;
@@ -243,8 +243,8 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump(const Duration(milliseconds: 1200));
 
-    expect(find.bySemanticsLabel('Share'), findsOneWidget);
-    expect(find.bySemanticsLabel('Badges'), findsOneWidget);
+    expect(find.bySemanticsLabel('Register extract'), findsOneWidget);
+    expect(find.bySemanticsLabel('Citations'), findsOneWidget);
     expect(find.bySemanticsLabel('Builder'), findsOneWidget);
   });
 
