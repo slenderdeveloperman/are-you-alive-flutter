@@ -205,7 +205,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
             fontFamily: 'monospace',
             letterSpacing: 2,
             fontSize: 14,
-            color: BureauTokens.ink,
+            color: BureauTokens.paper,
           ),
         ),
       ),
@@ -272,9 +272,11 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       children: [
         const Spacer(),
         Text(
-          '⏳',
+          'WITNESS / PENDING',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 40),
+          style: BureauTokens.filingLabel.copyWith(
+            color: BureauTokens.mutedOnInk,
+          ),
         ),
         const SizedBox(height: 16),
         Text(
@@ -395,21 +397,21 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     return AnimatedButton(
       key: key,
       onPressed: onPressed,
+      enableGlow: false,
+      pressedScale: 0.98,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: BureauTokens.accent,
-          borderRadius: BorderRadius.circular(12),
+          color: BureauTokens.paper,
+          border: Border.all(color: BureauTokens.paper),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+          style: BureauTokens.filingLabel.copyWith(
+            fontSize: 13,
             letterSpacing: 1.5,
-            color: Colors.white,
+            color: BureauTokens.ink,
           ),
         ),
       ),
