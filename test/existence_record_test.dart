@@ -48,6 +48,7 @@ void main() {
       now: filed.subtract(const Duration(minutes: 5)),
     );
     expect(record.status, ExistenceStatus.active);
-    expect(record.remaining, greaterThan(const Duration(hours: 39)));
+    expect(record.remaining, ExistenceRecord.filingWindow);
+    expect(record.lastCheckIn, filed.subtract(const Duration(minutes: 5)));
   });
 }
