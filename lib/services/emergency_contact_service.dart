@@ -113,9 +113,9 @@ class EmergencyContactService {
   String buildInviteMessage({required String userName, required String code}) {
     final safeName = userName.trim().isEmpty ? 'Someone' : userName.trim();
     final link = '$_playStoreUrl&referrer=$code';
-    return '$safeName picked you as their emergency contact on '
-        'Are You Alive? — if they ever go silent too long, you\'re the one '
-        'who gets told.\n\n'
+    return '$safeName picked you as their designated contact on '
+        'Are You Alive?. Pairing confirms that you are their chosen contact; '
+        'automatic missed-deadline alerts are not active yet.\n\n'
         'Install and enter code $code to accept:\n$link';
   }
 
