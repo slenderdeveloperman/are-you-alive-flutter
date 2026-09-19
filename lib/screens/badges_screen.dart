@@ -47,7 +47,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'badges',
+          'citations',
           style: TextStyle(
             fontFamily: 'monospace',
             letterSpacing: 2,
@@ -64,7 +64,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$unlockedCount/${widget.snapshot.badges.length} unlocked',
+                '$unlockedCount/${widget.snapshot.badges.length} filed',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
@@ -267,7 +267,7 @@ class _BadgeDetailSheet extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   badge.earned
-                      ? 'unlocked'
+                      ? 'recorded'
                       : '${badge.current}/${badge.target} - ${badge.hint.toLowerCase()}',
                   style: TextStyle(
                     fontFamily: 'monospace',
