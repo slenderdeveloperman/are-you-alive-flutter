@@ -18,6 +18,28 @@ BadgeProgress _badge({
     target: 1,
     hint: 'hint',
   );
+  testWidgets(
+    'a badge timestamped in the future does not celebrate',
+    (tester) async {
+      final now = DateTime(2026, 1, 1, 12);
+      final futureEarned = _badge(
+        id: BadgeId.metronome,
+        earned: true,
+        earnedAtMs: now.add(const Duration(minutes: 1)).millisecondsSinceEpoch,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BadgesScreen(
+            snapshot: _snapshot([futureEarned]),
+            nowProvider: () => now,
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(_scaleOf(tester, BadgeId.metronome), 1.0);
+    },
+  );
+
 }
 
 BadgeSnapshot _snapshot(List<BadgeProgress> badges) {
