@@ -30,3 +30,22 @@ jobs:
         run: flutter analyze
       - name: Test
         run: flutter test
+
+
+  witness-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend/witness-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/witness-worker/package-lock.json
+      - name: Install worker dependencies
+        run: npm install --package-lock-only && npm ci
+      - name: Typecheck worker
+        run: npm run typecheck
