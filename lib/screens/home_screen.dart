@@ -27,6 +27,8 @@ import '../theme/motion_tokens.dart';
 import '../models/share_models.dart';
 import '../utils/date_utils.dart';
 import '../widgets/share_preset_sheet.dart';
+import '../widgets/filing_block.dart';
+import '../theme/bureau_tokens.dart';
 
 enum _HeartbeatPhase { inactive, normal, erratic, expired }
 
@@ -419,6 +421,19 @@ class _HomeScreenState extends State<HomeScreen>
     return '$hours:$minutes:$seconds';
   }
 
+  ExistenceRecord _currentExistenceRecord() {
+    if (_notificationTimestamp == null) {
+      return ExistenceRecord.fromLastCheckIn(lastCheckIn: null, now: _now());
+    }
+    final lastCheckIn = DateTime.fromMillisecondsSinceEpoch(
+      _notificationTimestamp! - ExistenceRecord.filingWindow.inMilliseconds,
+    );
+    return ExistenceRecord.fromLastCheckIn(
+      lastCheckIn: lastCheckIn,
+      now: _now(),
+    );
+  }
+
   String _fallbackTimerMessage() {
     final safeName = _userName.trim().isEmpty ? 'human' : _userName.trim();
     return 'check in before ${_formatDuration(_remainingTime)}, $safeName';
@@ -759,7 +774,42 @@ class _HomeScreenState extends State<HomeScreen>
           SafeArea(
             child: Column(
               children: [
-                // Heart and button/message positioned higher on screen
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Builder(
+                    builder: (context) {
+                      final record = _currentExistenceRecord();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          FilingBlock(
+                            status: ExistenceRecord.statusLabel(record.status),
+                            fields: [
+                              FilingField(
+                                'DEADLINE',
+                                record.deadline == null
+                                    ? 'AWAITING FIRST FILING'
+                                    : _formatDuration(record.remaining),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _formatDuration(record.remaining),
+                            key: const ValueKey('existence-countdown'),
+                            textAlign: TextAlign.right,
+                            style: BureauTokens.countdown.copyWith(
+                              color: record.status == ExistenceStatus.lapsed
+                                  ? BureauTokens.lapsed
+                                  : BureauTokens.paper,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                // Anatomical instrument and filing action.
                 Expanded(
                   child: Align(
                     alignment: const Alignment(0, -0.55),
@@ -823,7 +873,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 return Transform.scale(
                                   scale: scale,
                                   child: Text(
-                                    '$value ${value == 1 ? 'day' : 'days'} alive',
+                                    '$value consecutive ${value == 1 ? 'filing' : 'filings'}',
                                     style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 14,
@@ -894,7 +944,7 @@ class _HomeScreenState extends State<HomeScreen>
                                             ),
                                           ),
                                           child: const Text(
-                                            "Yes, I'm alive",
+                                            "I'M ALIVE",
                                             style: TextStyle(
                                               fontFamily: 'monospace',
                                               fontSize: 18,
@@ -932,7 +982,7 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(height: 14),
                           TypewriterText(
                             key: const ValueKey('typewriter-tomorrow'),
-                            text: 'CHECK BACK IN TOMORROW',
+                            text: 'FILING RECEIVED / RECORD ACTIVE',
                             charDuration: const Duration(milliseconds: 40),
                             style: TextStyle(
                               fontFamily: 'monospace',
