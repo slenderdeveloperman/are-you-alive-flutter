@@ -35,10 +35,16 @@ class ExistenceRecord {
       );
     }
 
-    final deadline = lastCheckIn.add(filingWindow);
+    final effectiveLastCheckIn =
+        lastCheckIn.isAfter(current) ? current : lastCheckIn;
+    final deadline = effectiveLastCheckIn.add(filingWindow);
     final rawRemaining = deadline.difference(current);
-    final remaining = rawRemaining.isNegative ? Duration.zero : rawRemaining;
-    final elapsed = current.difference(lastCheckIn);
+    final remaining = rawRemaining.isNegative
+        ? Duration.zero
+        : rawRemaining > filingWindow
+        ? filingWindow
+        : rawRemaining;
+    final elapsed = current.difference(effectiveLastCheckIn);
 
     final status = rawRemaining.isNegative || rawRemaining == Duration.zero
         ? ExistenceStatus.lapsed
@@ -49,7 +55,7 @@ class ExistenceRecord {
         : ExistenceStatus.active;
 
     return ExistenceRecord(
-      lastCheckIn: lastCheckIn,
+      lastCheckIn: effectiveLastCheckIn,
       deadline: deadline,
       remaining: remaining,
       status: status,
