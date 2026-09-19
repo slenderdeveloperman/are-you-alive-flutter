@@ -18,28 +18,6 @@ BadgeProgress _badge({
     target: 1,
     hint: 'hint',
   );
-  testWidgets(
-    'a badge timestamped in the future does not celebrate',
-    (tester) async {
-      final now = DateTime(2026, 1, 1, 12);
-      final futureEarned = _badge(
-        id: BadgeId.metronome,
-        earned: true,
-        earnedAtMs: now.add(const Duration(minutes: 1)).millisecondsSinceEpoch,
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BadgesScreen(
-            snapshot: _snapshot([futureEarned]),
-            nowProvider: () => now,
-          ),
-        ),
-      );
-      await tester.pump();
-      expect(_scaleOf(tester, BadgeId.metronome), 1.0);
-    },
-  );
-
 }
 
 BadgeSnapshot _snapshot(List<BadgeProgress> badges) {
@@ -57,17 +35,10 @@ BadgeSnapshot _snapshot(List<BadgeProgress> badges) {
   );
 }
 
-/// The celebration entrance animates scale from 0.7 → 1.0 over 500ms. A
-/// freshly-pumped celebrating chip is caught mid-entrance (scale < 1.0); a
-/// non-celebrating chip renders at rest (scale == 1.0) immediately.
 double _scaleOf(WidgetTester tester, BadgeId id) {
   final transform = tester.widget<Transform>(
     find.byKey(ValueKey('badge-scale-${id.name}')),
   );
-  // Transform.scale builds Matrix4.diagonal3Values(scale, scale, 1.0) — the
-  // X-axis entry (entry 0,0) is the scale factor itself. (Not
-  // getMaxScaleOnAxis(): that also considers the always-1.0 Z axis, so it
-  // never reads below 1.0 for a 2D Transform.scale.)
   return transform.transform.entry(0, 0);
 }
 
@@ -92,8 +63,6 @@ void main() {
           ),
         ),
       );
-      // Advance partway through the 500ms entrance — long enough to leave
-      // the 0.7 starting scale, short enough not to have settled at 1.0.
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(_scaleOf(tester, BadgeId.metronome), lessThan(1.0));
@@ -130,7 +99,6 @@ void main() {
     'an unearned badge never celebrates regardless of timestamp',
     (tester) async {
       final now = DateTime(2026, 1, 1, 12, 0, 0);
-      // earnedAtMs set (e.g. stale data) but earned:false must still win.
       final unearned = _badge(
         id: BadgeId.metronome,
         earned: false,
@@ -143,6 +111,30 @@ void main() {
         MaterialApp(
           home: BadgesScreen(
             snapshot: _snapshot([unearned]),
+            nowProvider: () => now,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(_scaleOf(tester, BadgeId.metronome), 1.0);
+    },
+  );
+
+  testWidgets(
+    'a badge timestamped in the future does not celebrate',
+    (tester) async {
+      final now = DateTime(2026, 1, 1, 12);
+      final futureEarned = _badge(
+        id: BadgeId.metronome,
+        earned: true,
+        earnedAtMs: now.add(const Duration(minutes: 1)).millisecondsSinceEpoch,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BadgesScreen(
+            snapshot: _snapshot([futureEarned]),
             nowProvider: () => now,
           ),
         ),
