@@ -177,6 +177,17 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   }
 
   Future<void> _removeContact() async {
+    final state = _state;
+    if (state != null) {
+      final deviceId = await _service.getOrCreateDeviceId();
+      // Server revocation is best-effort so an offline subject can still
+      // remove the local relationship immediately. A later server cleanup
+      // remains an operational concern if this call cannot reach Neon.
+      await _pairingService.revokePairing(
+        code: state.pairingCode,
+        inviterId: deviceId,
+      );
+    }
     await _service.clear();
     if (!mounted) return;
     setState(() {
