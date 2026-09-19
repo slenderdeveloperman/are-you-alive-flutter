@@ -837,7 +837,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   alignment: Alignment.center,
                                   children: [
                                     CustomPaint(
-                                      size: const Size(150, 150),
+                                      size: const Size(126, 126),
                                       painter: HeartPainter(
                                         fillAmount: 1.0,
                                         isActive: _hasCheckedIn,
@@ -846,7 +846,7 @@ class _HomeScreenState extends State<HomeScreen>
                                     ),
                                     // Particle overlay
                                     HeartParticles(
-                                      heartSize: const Size(150, 150),
+                                      heartSize: const Size(126, 126),
                                       isCheckingIn: _isCheckingIn,
                                       decayLevel: _decayLevel,
                                     ),
@@ -856,7 +856,7 @@ class _HomeScreenState extends State<HomeScreen>
                             );
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                         TweenAnimationBuilder<int>(
                           tween: IntTween(begin: _previousStreak, end: _streakCount),
                           duration: MotionTokens.celebrationDuration,
@@ -887,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
                         // Show button with fade+slide animation
                         AnimatedSwitcher(
