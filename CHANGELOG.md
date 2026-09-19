@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased (AYA 0.3)
+
+- Shareable register extracts now include a compact F.C.C.D.B. filing stamp
+  carrying the file, status, and revision fields.
+- Extract text now fits horizontally as well as vertically, truncating only
+  when the available artwork zone cannot accommodate the full line.
+
 ## 0.2.2+25 (2026-07-29)
 
 Packages the three sessions below (2026-07-20 through 2026-07-22) into a
