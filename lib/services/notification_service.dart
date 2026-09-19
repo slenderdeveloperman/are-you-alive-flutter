@@ -22,14 +22,7 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
     tz_data.initializeTimeZones();
-
-    try {
-      final deviceTimeZone = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(deviceTimeZone));
-    } catch (e) {
-      debugPrint('Failed to get device timezone: $e');
-      tz.setLocalLocation(tz.getLocation('UTC'));
-    }
+    await _refreshTimeZone();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwinSettings = DarwinInitializationSettings(
@@ -160,7 +153,22 @@ class NotificationService {
     }
   }
 
+  Future<void> _refreshTimeZone() async {
+    try {
+      final deviceTimeZone = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(deviceTimeZone));
+    } catch (e) {
+      debugPrint('Failed to get device timezone: $e');
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
+  }
+
   Future<void> reconcileFromStoredFiling() async {
+    await init();
+    // A user may cross timezones while the process stays alive. Refresh the
+    // zone before rebuilding the reminder so the displayed/local fire time
+    // follows the device rather than the zone captured at process launch.
+    await _refreshTimeZone();
     await scheduleInactivityNotification();
   }
 
