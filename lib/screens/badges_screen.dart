@@ -3,6 +3,7 @@ import '../models/badge_models.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/cylindrical_badge_chip.dart';
 import '../theme/motion_tokens.dart';
+import '../theme/bureau_tokens.dart';
 
 class BadgesScreen extends StatefulWidget {
   const BadgesScreen({
@@ -40,9 +41,9 @@ class _BadgesScreenState extends State<BadgesScreen> {
         widget.snapshot.badges.where((badge) => badge.earned).length;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BureauTokens.ink,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: BureauTokens.ink,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -216,9 +217,8 @@ class _BadgeDetailSheet extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        color: BureauTokens.ink,
+        border: Border.all(color: BureauTokens.ruleOnInk),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -229,9 +229,8 @@ class _BadgeDetailSheet extends StatelessWidget {
               width: 40,
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+              decoration: const BoxDecoration(
+                color: BureauTokens.ruleOnInk,
               ),
             ),
           ),
@@ -251,8 +250,7 @@ class _BadgeDetailSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: BureauTokens.ruleOnInk),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
