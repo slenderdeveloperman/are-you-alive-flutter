@@ -241,6 +241,7 @@ class _InviteCodeSheet extends StatefulWidget {
 
 class _InviteCodeSheetState extends State<_InviteCodeSheet> {
   late final TextEditingController _codeController;
+  late final TextEditingController _emailController;
   bool _submitting = false;
   String? _message;
 
@@ -248,17 +249,20 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
   void initState() {
     super.initState();
     _codeController = TextEditingController(text: widget.initialCode ?? '');
+    _emailController = TextEditingController();
   }
 
   @override
   void dispose() {
     _codeController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
   Future<void> _accept() async {
     final code = _codeController.text.trim().toUpperCase();
-    if (code.isEmpty) return;
+    final email = _emailController.text.trim();
+    if (code.isEmpty || email.isEmpty) return;
 
     setState(() {
       _submitting = true;
@@ -272,6 +276,7 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
       claimerName: widget.claimerName.trim().isEmpty
           ? null
           : widget.claimerName.trim(),
+      deliveryEmail: email,
     );
 
     if (!mounted) return;
@@ -281,6 +286,7 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
         ClaimResult.claimed => 'Accepted — you are their designated witness.',
         ClaimResult.alreadyClaimed => 'This invite was already accepted.',
         ClaimResult.notFound => 'That code doesn\'t match an active invite.',
+        ClaimResult.invalidEmail => 'Enter a valid email for witness notices.',
         null => 'Couldn\'t reach the server — check your connection.',
       };
     });
@@ -334,6 +340,37 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
                   hintText: 'AYA-XXXXXX',
                   hintStyle: TextStyle(
                     color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('welcome-witness-email-field'),
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 15,
+                  color: Colors.white,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'WITNESS EMAIL',
+                  helperText: 'Used only for lapse/restoration notices.',
+                  labelStyle: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                  helperStyle: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: 0.45),
                   ),
                   enabledBorder: UnderlineInputBorder(
                     borderSide: BorderSide(
