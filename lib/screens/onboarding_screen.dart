@@ -10,7 +10,7 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[850],
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -21,7 +21,7 @@ class OnboardingScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'check in before the timer runs out.',
+                  'FLD-AYA-01 / CONTINUED EXISTENCE REGISTER\n\nFile once every 39 hours. A local notice is scheduled after 30 hours. If the filing window lapses, the record remains lapsed until you file again.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'monospace',
@@ -51,7 +51,7 @@ class OnboardingScreen extends StatelessWidget {
                           ),
                         ),
                         child: const Text(
-                          'Got it?',
+                          'OPEN REGISTER',
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 18,
