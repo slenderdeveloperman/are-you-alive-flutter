@@ -80,3 +80,60 @@ where delivered_at is not null
 
 comment on column public.invites.delivery_email is
   'Witness-supplied operational address for AYA lapse/restoration notices.';
+
+
+-- Atomically lease a small batch for a stateless worker. The worker performs
+-- network I/O only after this transaction has committed.
+create or replace function public.claim_witness_alerts(p_limit integer default 25)
+returns table (
+  id bigint,
+  kind text,
+  subject_id uuid,
+  witness_id uuid,
+  delivery_email text,
+  attempt_count integer
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return query
+  with candidates as (
+    select o.id
+    from witness_alert_outbox o
+    where (
+      (o.status = 'pending' and o.next_attempt_at <= now())
+      or
+      (o.status = 'leased' and o.lease_until <= now())
+    )
+    order by o.id
+    limit greatest(1, least(coalesce(p_limit, 25), 25))
+    for update skip locked
+  ),
+  leased as (
+    update witness_alert_outbox o
+    set status = 'leased',
+        lease_until = now() + interval '10 minutes',
+        attempt_count = o.attempt_count + 1,
+        last_error = null
+    from candidates c
+    where o.id = c.id
+    returning o.id, o.kind, o.subject_id, o.witness_id, o.attempt_count
+  )
+  select l.id, l.kind, l.subject_id, l.witness_id, i.delivery_email, l.attempt_count
+  from leased l
+  join invites i
+    on i.inviter_id = l.subject_id
+   and i.claimer_id = l.witness_id
+   and i.claimed_at is not null
+   and i.delivery_email is not null;
+end;
+$$;
+
+-- Direct table access stays denied to app roles. The delivery worker connects
+-- with a server-side DATABASE_URL, not the app's anonymous Data API role.
+revoke all on function public.claim_witness_alerts(integer) from public;
+
+comment on function public.claim_witness_alerts(integer) is
+  'AYA worker-only atomic lease of pending witness notifications.';
