@@ -10,6 +10,7 @@ import '../models/emergency_contact_models.dart';
 import '../services/emergency_contact_service.dart';
 import '../services/pairing_service.dart';
 import '../widgets/animated_button.dart';
+import '../theme/bureau_tokens.dart';
 
 class EmergencyContactScreen extends StatefulWidget {
   const EmergencyContactScreen({
@@ -176,6 +177,17 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   }
 
   Future<void> _removeContact() async {
+    final state = _state;
+    if (state != null) {
+      final deviceId = await _service.getOrCreateDeviceId();
+      // Server revocation is best-effort so an offline subject can still
+      // remove the local relationship immediately. A later server cleanup
+      // remains an operational concern if this call cannot reach Neon.
+      await _pairingService.revokePairing(
+        code: state.pairingCode,
+        inviterId: deviceId,
+      );
+    }
     await _service.clear();
     if (!mounted) return;
     setState(() {
@@ -192,19 +204,19 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BureauTokens.ink,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: BureauTokens.ink,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'emergency contact',
+          'designated witness',
           style: TextStyle(
             fontFamily: 'monospace',
             letterSpacing: 2,
             fontSize: 14,
-            color: Colors.white,
+            color: BureauTokens.paper,
           ),
         ),
       ),
@@ -214,7 +226,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: _loading
               ? const Center(
-                  child: CircularProgressIndicator(color: Colors.redAccent),
+                  child: CircularProgressIndicator(color: BureauTokens.accent),
                 )
               : _buildBody(),
         ),
@@ -243,8 +255,9 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Pick one person.\n\nIf you ever go silent past your window, '
-          'they\'re the one who gets told.',
+          'Designate one witness to pair with your record.\n\n'
+          'Pairing confirms who you trust; automatic missed-deadline '
+          'alerts are not active yet.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'monospace',
@@ -256,7 +269,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         const Spacer(),
         _primaryButton(
           key: const ValueKey('emergency-choose-button'),
-          label: 'CHOOSE SOMEONE',
+          label: 'DESIGNATE WITNESS',
           onPressed: _chooseContact,
         ),
       ],
@@ -270,13 +283,15 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       children: [
         const Spacer(),
         Text(
-          '⏳',
+          'WITNESS / PENDING',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 40),
+          style: BureauTokens.filingLabel.copyWith(
+            color: BureauTokens.mutedOnInk,
+          ),
         ),
         const SizedBox(height: 16),
         Text(
-          'Waiting on ${state.name}',
+          'Awaiting ${state.name}',
           key: const ValueKey('emergency-pending-title'),
           textAlign: TextAlign.center,
           style: const TextStyle(
@@ -306,7 +321,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
             fontSize: 22,
             letterSpacing: 3,
             fontWeight: FontWeight.w700,
-            color: Colors.redAccent,
+            color: BureauTokens.accent,
           ),
         ),
         const Spacer(),
@@ -339,10 +354,10 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Spacer(),
-        const Icon(Icons.verified_outlined, size: 56, color: Colors.greenAccent),
+        const Icon(Icons.verified_outlined, size: 56, color: BureauTokens.active),
         const SizedBox(height: 24),
         Text(
-          '${state.name} has your back',
+          '${state.name} / WITNESS CONFIRMED',
           key: const ValueKey('emergency-confirmed-title'),
           textAlign: TextAlign.center,
           style: const TextStyle(
@@ -375,7 +390,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       key: const ValueKey('emergency-remove-button'),
       onPressed: _removeContact,
       child: Text(
-        'change contact',
+        'change witness',
         style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 12,
@@ -393,21 +408,21 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     return AnimatedButton(
       key: key,
       onPressed: onPressed,
+      enableGlow: false,
+      pressedScale: 0.98,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.redAccent,
-          borderRadius: BorderRadius.circular(12),
+          color: BureauTokens.paper,
+          border: Border.all(color: BureauTokens.paper),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+          style: BureauTokens.filingLabel.copyWith(
+            fontSize: 13,
             letterSpacing: 1.5,
-            color: Colors.white,
+            color: BureauTokens.ink,
           ),
         ),
       ),

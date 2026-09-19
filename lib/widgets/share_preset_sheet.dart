@@ -281,7 +281,7 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
     return ListView(
       children: [
         Text(
-          'Pick what to include. Sensitive fields are off by default.',
+          'Select fields for this register extract. Sensitive fields remain off by default.',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.75),
             fontFamily: 'monospace',
@@ -293,7 +293,9 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
           final enabled = _selectedFields.contains(field);
           final required = _selectedPreset.defaultFields.contains(field);
 
-          return SwitchListTile(
+          return Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
             value: enabled,
             onChanged: required
                 ? null
@@ -329,6 +331,7 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
                     ),
                   )
                 : null,
+            ),
           );
         }),
       ],
@@ -362,7 +365,7 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Caption preview',
+          'Extract caption',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.9),
             fontFamily: 'monospace',
@@ -457,9 +460,9 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
 
   String _primaryButtonText() {
     if (_stepIndex == 2) {
-      return _isSharing ? 'Sharing...' : 'Share now';
+      return _isSharing ? 'ISSUING…' : 'ISSUE EXTRACT';
     }
-    return 'Continue';
+    return 'CONTINUE';
   }
 
   bool _isPrimaryActionEnabled() {
@@ -472,11 +475,11 @@ class _SharePresetSheetState extends State<SharePresetSheet> {
   String _headerTitle() {
     switch (_stepIndex) {
       case 0:
-        return 'Choose Preset';
+        return 'CHOOSE EXTRACT';
       case 1:
-        return 'Pick Data';
+        return 'SELECT FIELDS';
       default:
-        return 'Preview & Share';
+        return 'CERTIFY & SHARE';
     }
   }
 

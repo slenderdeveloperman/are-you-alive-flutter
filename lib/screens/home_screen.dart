@@ -8,22 +8,24 @@ import 'emergency_contact_screen.dart';
 import '../widgets/heart_painter.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/bottom_action_pill.dart';
-import '../widgets/typewriter_text.dart';
-import '../widgets/are_you_alive_loop.dart';
-import '../widgets/glitch_text.dart';
 import '../widgets/heart_particles.dart';
 import '../models/badge_models.dart';
 import '../models/emergency_contact_models.dart';
+import '../models/existence_record.dart';
 import '../repositories/timer_message_repository.dart';
 import '../services/badge_service.dart';
 import '../services/emergency_contact_service.dart';
+import '../services/existence_record_service.dart';
 import '../services/notification_service.dart';
 import '../services/pairing_service.dart';
+import '../services/watchdog_service.dart';
 import '../theme/app_layout.dart';
 import '../theme/motion_tokens.dart';
 import '../models/share_models.dart';
 import '../utils/date_utils.dart';
 import '../widgets/share_preset_sheet.dart';
+import '../widgets/filing_block.dart';
+import '../theme/bureau_tokens.dart';
 
 enum _HeartbeatPhase { inactive, normal, erratic, expired }
 
@@ -83,10 +85,11 @@ class _HomeScreenState extends State<HomeScreen>
   BadgeSnapshot? _badgeSnapshot;
   String _timerMessage = '';
   String? _lastTimerMessageDate;
+  bool? _notificationsEnabled;
 
   static const Duration _normalHeartbeatDuration = Duration(milliseconds: 600);
   static const Duration _erraticWindowStart = Duration(hours: 24);
-  static const Duration _expiryThreshold = Duration(hours: 39);
+  static const Duration _expiryThreshold = ExistenceRecord.filingWindow;
 
   @override
   void initState() {
@@ -106,12 +109,14 @@ class _HomeScreenState extends State<HomeScreen>
     final hasCheckedInToday = await _hasCheckedInToday();
 
     final loadedStreak = prefs.getInt('streakCount') ?? 0;
+    final notificationsEnabled = prefs.getBool('notificationsEnabled');
     setState(() {
       _userName = prefs.getString('userName') ?? 'human';
       _previousStreak = loadedStreak; // Set both to same value on initial load
       _streakCount = loadedStreak;
       _checkInsSinceDeath = prefs.getInt('checkInsSinceDeath') ?? 3;
       _hasCheckedIn = hasCheckedInToday; // Set based on calendar day
+      _notificationsEnabled = notificationsEnabled;
       _activeDayKey = dateOnly(_now());
     });
     await _refreshBadgeSnapshot();
@@ -134,13 +139,16 @@ class _HomeScreenState extends State<HomeScreen>
 
     switch (outcome) {
       case SyncOutcome.confirmed:
+        final record = await ExistenceRecordService(now: _now).load();
+        if (!mounted) return;
+        unawaited(_syncWatchdog(record));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${before.name} has your back now.')),
+          SnackBar(content: Text('${before.name} / witness confirmed.')),
         );
       case SyncOutcome.resetExpired:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Emergency contact invite expired — choose again.'),
+            content: Text('Witness designation expired — designate again.'),
           ),
         );
       case SyncOutcome.unchanged:
@@ -169,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       // Reset timer when app comes back to foreground
       await _resetTimerAndCountdown();
+      unawaited(NotificationService().reconcileFromStoredFiling());
 
       // Reload user data (streak might have changed)
       await _loadUserData();
@@ -176,24 +185,10 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// Check if auto-reset is needed, schedule notification, then initialize countdown
+  /// Reconcile display state from the canonical filing. A lapsed filing stays
+  /// lapsed until the user explicitly files again; the witness grace period
+  /// must never silently create a new local deadline.
   Future<void> _resetTimerAndCountdown() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lastActiveTimestamp = prefs.getInt('lastActiveTimestamp');
-
-    if (lastActiveTimestamp != null) {
-      final elapsed = _now().millisecondsSinceEpoch - lastActiveTimestamp;
-      final autoResetThreshold = const Duration(
-        hours: 41,
-      ).inMilliseconds; // 39h timer + 2h grace
-
-      if (elapsed >= autoResetThreshold) {
-        // Auto-reset: more than 41 hours have passed since last check-in
-        // Schedule a fresh notification (this also updates lastActiveTimestamp)
-        await _scheduleNotification();
-      }
-    }
-
     await _initCountdown();
   }
 
@@ -234,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (_notificationTimestamp == null) return 0.0;
 
     // Calculate time-based decay
-    final totalDuration = const Duration(hours: 39).inMilliseconds;
+    final totalDuration = ExistenceRecord.filingWindow.inMilliseconds;
     final lastActiveTimestamp = _notificationTimestamp! - totalDuration;
     final elapsed = _now().millisecondsSinceEpoch - lastActiveTimestamp;
     final timeDecay = (elapsed / totalDuration).clamp(0.0, 1.0);
@@ -322,15 +317,38 @@ class _HomeScreenState extends State<HomeScreen>
     // Increment streak if new day
     await _incrementStreakIfNewDay();
 
-    // Always schedule a fresh notification on button click (resets timer to 39:00:00)
-    await _scheduleNotification();
+    // Filing is the only operation allowed to move the 39-hour deadline.
+    final record = await ExistenceRecordService(now: _now).fileNow();
+    await _scheduleNotification(from: record.lastCheckIn);
+    unawaited(_syncWatchdog(record));
     await _initCountdown();
     await _refreshBadgeSnapshot();
     await _refreshDailyTimerMessage(force: true);
   }
 
-  Future<void> _scheduleNotification() async {
-    await NotificationService().scheduleInactivityNotification();
+  Future<void> _scheduleNotification({DateTime? from}) async {
+    final enabled =
+        await NotificationService().scheduleInactivityNotification(from: from);
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = enabled;
+    });
+  }
+
+  Future<void> _syncWatchdog(ExistenceRecord record) async {
+    final checkedInAt = record.lastCheckIn;
+    if (checkedInAt == null) return;
+
+    final contactService =
+        widget._emergencyContactService ?? EmergencyContactService();
+    final contact = await contactService.load();
+    if (contact == null || contact.status != PairingStatus.confirmed) return;
+
+    final subjectId = await contactService.getOrCreateDeviceId();
+    await WatchdogService().syncCheckIn(
+      subjectId: subjectId,
+      checkedInAt: checkedInAt,
+    );
   }
 
   Future<void> _initCountdown() async {
@@ -342,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (lastActiveTimestamp != null) {
       // Notification is scheduled for 39 hours after lastActiveTimestamp
       _notificationTimestamp =
-          lastActiveTimestamp + const Duration(hours: 39).inMilliseconds;
+          lastActiveTimestamp + ExistenceRecord.filingWindow.inMilliseconds;
     }
     _reconcileHeartbeatPhase(lastActiveTimestamp: lastActiveTimestamp);
     _calculateRemainingTime();
@@ -412,6 +430,19 @@ class _HomeScreenState extends State<HomeScreen>
     return '$hours:$minutes:$seconds';
   }
 
+  ExistenceRecord _currentExistenceRecord() {
+    if (_notificationTimestamp == null) {
+      return ExistenceRecord.fromLastCheckIn(lastCheckIn: null, now: _now());
+    }
+    final lastCheckIn = DateTime.fromMillisecondsSinceEpoch(
+      _notificationTimestamp! - ExistenceRecord.filingWindow.inMilliseconds,
+    );
+    return ExistenceRecord.fromLastCheckIn(
+      lastCheckIn: lastCheckIn,
+      now: _now(),
+    );
+  }
+
   String _fallbackTimerMessage() {
     final safeName = _userName.trim().isEmpty ? 'human' : _userName.trim();
     return 'check in before ${_formatDuration(_remainingTime)}, $safeName';
@@ -439,14 +470,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   TextSpan _buildTimerMessageSpan(String message) {
-    const baseStyle = TextStyle(
-      fontFamily: 'monospace',
-      fontSize: 17,
+    final baseStyle = BureauTokens.filingValue.copyWith(
+      fontSize: 15,
       height: 1.5,
-      color: Colors.white,
+      color: BureauTokens.mutedOnInk,
     );
     final highlightStyle = baseStyle.copyWith(
-      color: Colors.red.withValues(alpha: 0.9),
+      color: BureauTokens.paper,
+      fontWeight: FontWeight.w600,
     );
 
     final currentCountdown = _formatDuration(_remainingTime);
@@ -752,7 +783,50 @@ class _HomeScreenState extends State<HomeScreen>
           SafeArea(
             child: Column(
               children: [
-                // Heart and button/message positioned higher on screen
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Builder(
+                    builder: (context) {
+                      final record = _currentExistenceRecord();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          FilingBlock(
+                            status: ExistenceRecord.statusLabel(record.status),
+                            fields: [
+                              FilingField(
+                                'DEADLINE',
+                                record.deadline == null
+                                    ? 'AWAITING FIRST FILING'
+                                    : _formatDuration(record.remaining),
+                              ),
+                              FilingField(
+                                'REMINDER',
+                                _notificationsEnabled == false
+                                    ? 'DISABLED'
+                                    : _notificationsEnabled == true
+                                    ? 'LOCAL / 30H'
+                                    : 'NOT SET',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _formatDuration(record.remaining),
+                            key: const ValueKey('existence-countdown'),
+                            textAlign: TextAlign.right,
+                            style: BureauTokens.countdown.copyWith(
+                              color: record.status == ExistenceStatus.lapsed
+                                  ? BureauTokens.lapsed
+                                  : BureauTokens.paper,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                // Anatomical instrument and filing action.
                 Expanded(
                   child: Align(
                     alignment: const Alignment(0, -0.55),
@@ -780,7 +854,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   alignment: Alignment.center,
                                   children: [
                                     CustomPaint(
-                                      size: const Size(150, 150),
+                                      size: const Size(126, 126),
                                       painter: HeartPainter(
                                         fillAmount: 1.0,
                                         isActive: _hasCheckedIn,
@@ -789,7 +863,7 @@ class _HomeScreenState extends State<HomeScreen>
                                     ),
                                     // Particle overlay
                                     HeartParticles(
-                                      heartSize: const Size(150, 150),
+                                      heartSize: const Size(126, 126),
                                       isCheckingIn: _isCheckingIn,
                                       decayLevel: _decayLevel,
                                     ),
@@ -799,7 +873,7 @@ class _HomeScreenState extends State<HomeScreen>
                             );
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                         TweenAnimationBuilder<int>(
                           tween: IntTween(begin: _previousStreak, end: _streakCount),
                           duration: MotionTokens.celebrationDuration,
@@ -816,7 +890,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 return Transform.scale(
                                   scale: scale,
                                   child: Text(
-                                    '$value ${value == 1 ? 'day' : 'days'} alive',
+                                    '$value consecutive ${value == 1 ? 'filing' : 'filings'}',
                                     style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 14,
@@ -830,7 +904,7 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
                         // Show button with fade+slide animation
                         AnimatedSwitcher(
@@ -870,29 +944,22 @@ class _HomeScreenState extends State<HomeScreen>
                                       height: AppLayout.buttonHeight,
                                       child: AnimatedButton(
                                         onPressed: _onCheckIn,
-                                        glowColor: Colors.red,
+                                        enableGlow: false,
+                                        pressedScale: 0.98,
                                         child: Container(
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
+                                            color: BureauTokens.paper,
                                             border: Border.all(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.3,
-                                              ),
+                                              color: BureauTokens.paper,
                                             ),
                                           ),
-                                          child: const Text(
-                                            "Yes, I'm alive",
-                                            style: TextStyle(
-                                              fontFamily: 'monospace',
-                                              fontSize: 18,
-                                              letterSpacing: 2,
-                                              color: Colors.white,
+                                          child: Text(
+                                            "I'M ALIVE",
+                                            style: BureauTokens.filingLabel.copyWith(
+                                              fontSize: 14,
+                                              letterSpacing: 2.2,
+                                              color: BureauTokens.ink,
                                             ),
                                           ),
                                         ),
@@ -908,30 +975,22 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(height: 12),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 30),
-                            child: GlitchText(
-                              key: const ValueKey('timer-message-glitch'),
-                              textSpan: _buildTimerMessageSpan(
+                            child: Text.rich(
+                              _buildTimerMessageSpan(
                                 _timerMessage.isNotEmpty
                                     ? _timerMessage
                                     : _fallbackTimerMessage(),
                               ),
+                              key: const ValueKey('timer-message-glitch'),
                               textAlign: TextAlign.center,
-                              glitchInterval: const Duration(seconds: 3),
-                              glitchDuration: const Duration(milliseconds: 80),
                             ),
                           ),
-
-                          // "check back in tomorrow" message with typewriter effect
                           const SizedBox(height: 14),
-                          TypewriterText(
+                          Text(
+                            'FILING RECEIVED / RECORD ACTIVE',
                             key: const ValueKey('typewriter-tomorrow'),
-                            text: 'CHECK BACK IN TOMORROW',
-                            charDuration: const Duration(milliseconds: 40),
-                            style: TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 15,
-                              color: Colors.red.withValues(alpha: 0.9),
-                              fontStyle: FontStyle.italic,
+                            style: BureauTokens.filingLabel.copyWith(
+                              color: BureauTokens.active,
                             ),
                           ),
                         ],
@@ -940,21 +999,6 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
               ],
-            ),
-          ),
-          // Animated "ARE YOU ALIVE?" loop positioned just above the bottom pill
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 88 + MediaQuery.of(context).padding.bottom,
-            child: const IgnorePointer(
-              ignoring: true,
-              child: Center(
-                child: SizedBox(
-                  height: 96,
-                  child: AreYouAliveLoop(),
-                ),
-              ),
             ),
           ),
           if (_badgeSnapshot != null)

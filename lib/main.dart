@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/splash_screen.dart';
@@ -9,6 +10,8 @@ import 'services/app_open_tracker_service.dart';
 import 'services/badge_service.dart';
 import 'services/metrics_schema_service.dart';
 import 'services/notification_service.dart';
+import 'services/existence_record_service.dart';
+import 'models/existence_record.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,12 +98,14 @@ class _AppRouterState extends State<AppRouter> with WidgetsBindingObserver {
     if (!hasDied && hasCompleted) {
       final lastActiveTimestamp = prefs.getInt('lastActiveTimestamp');
       if (lastActiveTimestamp != null) {
-        final elapsed =
-            DateTime.now().millisecondsSinceEpoch - lastActiveTimestamp;
-        final expired = elapsed >= const Duration(hours: 39).inMilliseconds;
+        final lastCheckIn =
+            DateTime.fromMillisecondsSinceEpoch(lastActiveTimestamp);
+        final record = ExistenceRecord.fromLastCheckIn(
+          lastCheckIn: lastCheckIn,
+          now: DateTime.now(),
+        );
 
-        if (expired) {
-          // User has died - save death state
+        if (record.isLapsed) {
           hasDied = true;
           deathStreakCount = prefs.getInt('streakCount') ?? 0;
           await prefs.setBool('hasDied', true);
@@ -150,12 +155,22 @@ class _AppRouterState extends State<AppRouter> with WidgetsBindingObserver {
     await prefs.setBool('hasDied', false);
     await prefs.setInt('checkInsSinceDeath', 0); // Start healing process
 
-    // Schedule fresh notification
-    await NotificationService().scheduleInactivityNotification();
+    // Rising again is an explicit new filing, so it may move the deadline.
+    final record = await ExistenceRecordService().fileNow();
 
-    setState(() {
-      _hasDied = false;
-    });
+    if (mounted) {
+      setState(() {
+        _hasDied = false;
+      });
+    }
+
+    // Reminder scheduling is best-effort and must never hold the subject on
+    // the eulogy screen after the filing itself has succeeded.
+    unawaited(
+      NotificationService().scheduleInactivityNotification(
+        from: record.lastCheckIn,
+      ),
+    );
   }
 
   /// Returns a unique key for the current screen to trigger AnimatedSwitcher transitions.

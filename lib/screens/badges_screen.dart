@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/badge_models.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/cylindrical_badge_chip.dart';
+import '../theme/motion_tokens.dart';
+import '../theme/bureau_tokens.dart';
 
 class BadgesScreen extends StatefulWidget {
   const BadgesScreen({
@@ -28,7 +30,9 @@ class _BadgesScreenState extends State<BadgesScreen> {
     final earnedAtMs = badge.earnedAtMs;
     if (!badge.earned || earnedAtMs == null) return false;
     final earnedAt = DateTime.fromMillisecondsSinceEpoch(earnedAtMs);
-    return _now().difference(earnedAt) <= _recentUnlockThreshold;
+    final age = _now().difference(earnedAt);
+    if (age.isNegative) return false;
+    return age <= _recentUnlockThreshold;
   }
 
   @override
@@ -37,14 +41,14 @@ class _BadgesScreenState extends State<BadgesScreen> {
         widget.snapshot.badges.where((badge) => badge.earned).length;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BureauTokens.ink,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: BureauTokens.ink,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'badges',
+          'citations',
           style: TextStyle(
             fontFamily: 'monospace',
             letterSpacing: 2,
@@ -61,7 +65,7 @@ class _BadgesScreenState extends State<BadgesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$unlockedCount/${widget.snapshot.badges.length} unlocked',
+                '$unlockedCount/${widget.snapshot.badges.length} filed',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
@@ -147,7 +151,7 @@ class _BadgeGridItemState extends State<_BadgeGridItem>
         curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
-    if (widget.celebrateUnlock) {
+    if (widget.celebrateUnlock && !MotionTokens.reducedMotion) {
       _controller.forward();
     } else {
       _controller.value = 1.0;
@@ -213,9 +217,8 @@ class _BadgeDetailSheet extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        color: BureauTokens.ink,
+        border: Border.all(color: BureauTokens.ruleOnInk),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -226,9 +229,8 @@ class _BadgeDetailSheet extends StatelessWidget {
               width: 40,
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+              decoration: const BoxDecoration(
+                color: BureauTokens.ruleOnInk,
               ),
             ),
           ),
@@ -248,8 +250,7 @@ class _BadgeDetailSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: BureauTokens.ruleOnInk),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -264,7 +265,7 @@ class _BadgeDetailSheet extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   badge.earned
-                      ? 'unlocked'
+                      ? 'recorded'
                       : '${badge.current}/${badge.target} - ${badge.hint.toLowerCase()}',
                   style: TextStyle(
                     fontFamily: 'monospace',

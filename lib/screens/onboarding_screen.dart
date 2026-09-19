@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_layout.dart';
+import '../theme/bureau_tokens.dart';
 import '../widgets/animated_button.dart';
+import '../widgets/filing_block.dart';
 
 class OnboardingScreen extends StatelessWidget {
   final VoidCallback onComplete;
@@ -10,27 +13,41 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[850],
+      backgroundColor: BureauTokens.ink,
       body: SafeArea(
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: AppLayout.buttonHorizontalGutter,
+              vertical: 32,
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const FilingBlock(
+                  status: 'UNFILED',
+                  fields: [
+                    FilingField('CLASS', 'CONTINUED EXISTENCE'),
+                    FilingField('INTERVAL', '39 HOURS'),
+                    FilingField('NOTICE', 'LOCAL / 30H'),
+                  ],
+                ),
+                const SizedBox(height: 32),
                 Text(
-                  'check in before the timer runs out.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 18,
-                    height: 1.6,
-                    color: Colors.white.withValues(alpha: 0.9),
+                  'Continued Existence Register',
+                  style: BureauTokens.displayTitle.copyWith(
+                    color: BureauTokens.paper,
                   ),
                 ),
-                const SizedBox(height: 60),
+                const SizedBox(height: 14),
+                Text(
+                  'File once every 39 hours. A local notice is scheduled after 30 hours. If the filing window lapses, the record stays lapsed until you file again.',
+                  style: BureauTokens.filingValue.copyWith(
+                    color: BureauTokens.mutedOnInk,
+                    height: 1.55,
+                  ),
+                ),
+                const SizedBox(height: 40),
                 ConstrainedBox(
                   constraints: const BoxConstraints(
                     maxWidth: AppLayout.buttonMaxWidth,
@@ -40,23 +57,20 @@ class OnboardingScreen extends StatelessWidget {
                     height: AppLayout.buttonHeight,
                     child: AnimatedButton(
                       onPressed: onComplete,
-                      glowColor: Colors.white,
+                      enableGlow: false,
+                      pressedScale: 0.98,
                       child: Container(
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
+                          color: BureauTokens.paper,
+                          border: Border.all(color: BureauTokens.paper),
                         ),
-                        child: const Text(
-                          'Got it?',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 18,
-                            letterSpacing: 2,
-                            color: Colors.white,
+                        child: Text(
+                          'OPEN REGISTER',
+                          style: BureauTokens.filingLabel.copyWith(
+                            color: BureauTokens.ink,
+                            fontSize: 13,
+                            letterSpacing: 2.2,
                           ),
                         ),
                       ),

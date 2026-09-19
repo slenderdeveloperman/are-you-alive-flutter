@@ -11,7 +11,7 @@ import '../config/backend_config.dart';
 /// and only reset on notFound (plan 009 Phase D).
 enum InviteStatus { pending, claimed, notFound }
 
-enum ClaimResult { claimed, alreadyClaimed, notFound }
+enum ClaimResult { claimed, alreadyClaimed, notFound, invalidEmail }
 
 class PairingService {
   PairingService({http.Client? client, DateTime Function()? now})
@@ -46,11 +46,13 @@ class PairingService {
     required String code,
     required String claimerId,
     String? claimerName,
+    required String deliveryEmail,
   }) async {
     final result = await _rpc('claim_invite', <String, String?>{
       'p_code': code,
       'p_claimer_id': claimerId,
       'p_claimer_name': claimerName,
+      'p_delivery_email': deliveryEmail,
     });
     switch (result) {
       case 'claimed':
@@ -59,6 +61,8 @@ class PairingService {
         return ClaimResult.alreadyClaimed;
       case 'not_found':
         return ClaimResult.notFound;
+      case 'invalid_email':
+        return ClaimResult.invalidEmail;
       default:
         return null;
     }
@@ -78,6 +82,21 @@ class PairingService {
       default:
         return null;
     }
+  }
+
+  /// Removes this subject's pairing, watchdog, and queued operational alert
+  /// state. Returns true when a matching relationship was revoked, false when
+  /// the server found no match, and null when unreachable.
+  Future<bool?> revokePairing({
+    required String code,
+    required String inviterId,
+  }) async {
+    final result = await _rpc('revoke_pairing', <String, String>{
+      'p_code': code,
+      'p_inviter_id': inviterId,
+    });
+    if (result == null) return null;
+    return result == true;
   }
 
   /// Calls a Data API RPC as the anonymous role. Returns the decoded JSON

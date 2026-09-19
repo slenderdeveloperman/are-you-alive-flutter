@@ -23,16 +23,19 @@ class RecordingClaimPairingService extends PairingService {
   String? capturedCode;
   String? capturedClaimerId;
   String? capturedClaimerName;
+  String? capturedDeliveryEmail;
 
   @override
   Future<ClaimResult?> claimInvite({
     required String code,
     required String claimerId,
     String? claimerName,
+    required String deliveryEmail,
   }) async {
     capturedCode = code;
     capturedClaimerId = claimerId;
     capturedClaimerName = claimerName;
+    capturedDeliveryEmail = deliveryEmail;
     return result;
   }
 }
@@ -106,12 +109,17 @@ void main() {
       find.byKey(const ValueKey('welcome-invite-code-field')),
       'aya-abc123',
     );
+    await tester.enterText(
+      find.byKey(const ValueKey('welcome-witness-email-field')),
+      'ravi@example.com',
+    );
     await tester.tap(find.byKey(const ValueKey('welcome-invite-code-accept')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     expect(pairing.capturedCode, 'AYA-ABC123');
     expect(pairing.capturedClaimerId, hasLength(32));
     expect(pairing.capturedClaimerName, 'Ravi');
+    expect(pairing.capturedDeliveryEmail, 'ravi@example.com');
   });
 
   testWidgets('a successful claim shows confirmation and closes the sheet', (
@@ -127,6 +135,10 @@ void main() {
     await tester.enterText(
       find.byKey(const ValueKey('welcome-invite-code-field')),
       'AYA-ABC123',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('welcome-witness-email-field')),
+      'witness@example.com',
     );
     await tester.tap(find.byKey(const ValueKey('welcome-invite-code-accept')));
     await tester.pump();
@@ -157,6 +169,10 @@ void main() {
       find.byKey(const ValueKey('welcome-invite-code-field')),
       'AYA-ZZZZZZ',
     );
+    await tester.enterText(
+      find.byKey(const ValueKey('welcome-witness-email-field')),
+      'witness@example.com',
+    );
     await tester.tap(find.byKey(const ValueKey('welcome-invite-code-accept')));
     await tester.pump();
 
@@ -177,6 +193,10 @@ void main() {
     await tester.enterText(
       find.byKey(const ValueKey('welcome-invite-code-field')),
       'AYA-ABC123',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('welcome-witness-email-field')),
+      'witness@example.com',
     );
     await tester.tap(find.byKey(const ValueKey('welcome-invite-code-accept')));
     await tester.pump();

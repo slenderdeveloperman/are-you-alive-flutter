@@ -11,16 +11,14 @@ class NotificationRepository {
   static const String _indexKey = 'thirtyHourNotificationIndex';
 
   static const List<String> _thirtyHourMessages = [
-    '30 hours? I’ve seen abandoned malls with more signs of life than this account.',
-    'I’m not saying you’re dead, but I’ve already started browsing for your replacement.',
-    'Checking in. Or is this one of those \'main character\' moments where you disappear for a montage?',
-    'Still breathing? Or should I start listing your sneakers on eBay?',
-    'Knock knock. Who’s there? Not your pulse, apparently.',
-    'Is this a \'ghosting\' situation, or are you actually a ghost? Clarification is appreciated.',
-    'I’ve started drafting your eulogy. So far, it’s just a list of your unread notifications.',
-    '30 hours is a long time to be \'finding yourself.\' You’re right here. Tap the screen.',
-    'I’m five minutes away from DMing your ex to see if they’ve heard anything. Don\'t test me.',
-    'If you don\'t respond in the next hour, I\'m legally obligated to assume you\'ve been recruited by a cult.',
+    'FILING NOTICE / 30 HOURS ELAPSED / confirmation requested.',
+    'CONTINUED EXISTENCE REGISTER / no new filing received in 30 hours.',
+    'FLD-AYA-01 / filing window remains open / confirmation requested.',
+    'BUREAU NOTICE / continued existence requires a current filing.',
+    'RECORD STATUS / active, approaching deadline / file when able.',
+    'F.C.C.D.B. / 30-hour reminder / no action has been recorded.',
+    'EXISTENCE REGISTER / filing outstanding / window closes at 39 hours.',
+    'FLD-AYA-01 / subject record awaiting confirmation.',
   ];
 
   Future<String> nextThirtyHourMessage() async {

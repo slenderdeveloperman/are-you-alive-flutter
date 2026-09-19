@@ -8,8 +8,6 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 import 'package:are_you_alive_flutter/main.dart';
 import 'package:are_you_alive_flutter/screens/home_screen.dart';
 import 'package:are_you_alive_flutter/screens/splash_screen.dart';
-import 'package:are_you_alive_flutter/widgets/are_you_alive_loop.dart';
-import 'package:are_you_alive_flutter/widgets/typewriter_text.dart';
 
 Iterable<TextSpan> _flattenTextSpans(InlineSpan span) sync* {
   if (span is! TextSpan) {
@@ -102,8 +100,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('badges'), findsOneWidget);
-    expect(find.textContaining('unlocked'), findsWidgets);
+    expect(find.text('citations'), findsOneWidget);
+    expect(find.textContaining('filed'), findsWidgets);
   });
 
   testWidgets('Splash screen renders spiral animation', (
@@ -163,15 +161,10 @@ void main() {
       // pump's single simulated frame.
       await tester.pump(const Duration(milliseconds: 700));
 
-      expect(find.textContaining('day alive'), findsOneWidget);
+      expect(find.textContaining('consecutive filing'), findsOneWidget);
       expect(find.byKey(const ValueKey('live-countdown-text')), findsNothing);
 
-      final glitchFinder = find.byKey(const ValueKey('timer-message-glitch'));
-      expect(glitchFinder, findsOneWidget);
-      final richTextFinder = find.descendant(
-        of: glitchFinder,
-        matching: find.byType(Text),
-      );
+      final richTextFinder = find.byKey(const ValueKey('timer-message-glitch'));
       expect(richTextFinder, findsOneWidget);
 
       final beforeTick = _textFromRichTextWidget(
@@ -189,8 +182,10 @@ void main() {
 
       final tomorrowFinder = find.byKey(const ValueKey('typewriter-tomorrow'));
       expect(tomorrowFinder, findsOneWidget);
-      final tomorrowWidget = tester.widget<TypewriterText>(tomorrowFinder);
-      expect(tomorrowWidget.text, 'CHECK BACK IN TOMORROW');
+      expect(
+        tester.widget<Text>(tomorrowFinder).data,
+        'FILING RECEIVED / RECORD ACTIVE',
+      );
 
       final timerText = tester.widget<Text>(richTextFinder);
       final span = timerText.textSpan;
@@ -199,8 +194,7 @@ void main() {
       final colors = _flattenTextSpans(
         span!,
       ).map((it) => it.style?.color).toSet();
-      expect(colors.contains(Colors.white), isTrue);
-      expect(colors.contains(Colors.red.withValues(alpha: 0.9)), isTrue);
+      expect(colors.whereType<Color>().length, greaterThanOrEqualTo(2));
     },
   );
 
@@ -243,8 +237,8 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump(const Duration(milliseconds: 1200));
 
-    expect(find.bySemanticsLabel('Share'), findsOneWidget);
-    expect(find.bySemanticsLabel('Badges'), findsOneWidget);
+    expect(find.bySemanticsLabel('Register extract'), findsOneWidget);
+    expect(find.bySemanticsLabel('Citations'), findsOneWidget);
     expect(find.bySemanticsLabel('Builder'), findsOneWidget);
   });
 
@@ -308,7 +302,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
   });
 
-  testWidgets('Loop sits above bottom pill and does not capture pointers', (
+  testWidgets('Bureau action register is present without decorative loop', (
     WidgetTester tester,
   ) async {
     final yesterday = DateTime.now()
@@ -326,18 +320,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump(const Duration(milliseconds: 1200));
 
-    final loopFinder = find.byType(AreYouAliveLoop);
-    final pillFinder = find.byKey(const ValueKey('bottom-action-pill'));
-    expect(loopFinder, findsOneWidget);
-    expect(pillFinder, findsOneWidget);
-
-    final loopBottom = tester.getBottomLeft(loopFinder).dy;
-    final pillTop = tester.getTopLeft(pillFinder).dy;
-    expect(loopBottom, lessThan(pillTop));
-
-    final ignorePointerFinder = find.byType(IgnorePointer);
-    final ignorePointerWidgets =
-        tester.widgetList<IgnorePointer>(ignorePointerFinder).toList();
-    expect(ignorePointerWidgets.any((widget) => widget.ignoring), isTrue);
+    expect(find.byKey(const ValueKey('bottom-action-pill')), findsOneWidget);
+    expect(find.text('EXTRACT'), findsOneWidget);
+    expect(find.text('CITATIONS'), findsOneWidget);
+    expect(find.text('WITNESS'), findsOneWidget);
   });
 }

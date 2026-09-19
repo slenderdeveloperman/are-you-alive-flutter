@@ -4,6 +4,7 @@ import '../services/emergency_contact_service.dart';
 import '../services/invite_claim_service.dart';
 import '../services/pairing_service.dart';
 import '../theme/app_layout.dart';
+import '../theme/bureau_tokens.dart';
 import '../widgets/animated_button.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -93,7 +94,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BureauTokens.ink,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -105,7 +106,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
               // Title
               Text(
-                'identify yourself',
+                'SUBJECT RECORD',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 22,
@@ -121,12 +122,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Row(
                 children: [
                   Text(
-                    '> ',
+                    'NAME ',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 28,
                       fontWeight: FontWeight.w400,
-                      color: Colors.red.withValues(alpha: 0.7),
+                      color: BureauTokens.mutedOnInk,
                     ),
                   ),
                   Expanded(
@@ -138,7 +139,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         fontWeight: FontWeight.w300,
                         color: Colors.white,
                       ),
-                      cursorColor: Colors.red,
+                      cursorColor: BureauTokens.accent,
                       autocorrect: false,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
@@ -164,25 +165,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   height: AppLayout.buttonHeight,
                   child: AnimatedButton(
                     onPressed: _isNameValid ? _proceed : null,
-                    glowColor: Colors.red,
+                    enableGlow: false,
+                    pressedScale: 0.98,
                     child: Container(
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(horizontal: 40),
                       decoration: BoxDecoration(
                         color: _isNameValid
-                            ? Colors.red.withValues(alpha: 0.8)
-                            : Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(2),
+                            ? BureauTokens.paper
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: _isNameValid
+                              ? BureauTokens.paper
+                              : BureauTokens.ruleOnInk,
+                        ),
                       ),
                       child: Text(
-                        'proceed',
+                        'OPEN RECORD',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 16,
                           letterSpacing: 3,
                           color: _isNameValid
-                              ? Colors.black
-                              : Colors.white.withValues(alpha: 0.3),
+                              ? BureauTokens.ink
+                              : BureauTokens.mutedOnInk,
                         ),
                       ),
                     ),
@@ -195,7 +201,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 key: const ValueKey('welcome-invite-code-button'),
                 onPressed: _openInviteCodeSheet,
                 child: Text(
-                  'have an invite code?',
+                  'accept witness designation',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 12,
@@ -235,6 +241,7 @@ class _InviteCodeSheet extends StatefulWidget {
 
 class _InviteCodeSheetState extends State<_InviteCodeSheet> {
   late final TextEditingController _codeController;
+  late final TextEditingController _emailController;
   bool _submitting = false;
   String? _message;
 
@@ -242,17 +249,20 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
   void initState() {
     super.initState();
     _codeController = TextEditingController(text: widget.initialCode ?? '');
+    _emailController = TextEditingController();
   }
 
   @override
   void dispose() {
     _codeController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
   Future<void> _accept() async {
     final code = _codeController.text.trim().toUpperCase();
-    if (code.isEmpty) return;
+    final email = _emailController.text.trim();
+    if (code.isEmpty || email.isEmpty) return;
 
     setState(() {
       _submitting = true;
@@ -266,15 +276,17 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
       claimerName: widget.claimerName.trim().isEmpty
           ? null
           : widget.claimerName.trim(),
+      deliveryEmail: email,
     );
 
     if (!mounted) return;
     setState(() {
       _submitting = false;
       _message = switch (result) {
-        ClaimResult.claimed => 'Accepted — you\'re their emergency contact.',
+        ClaimResult.claimed => 'Accepted — you are their designated witness.',
         ClaimResult.alreadyClaimed => 'This invite was already accepted.',
         ClaimResult.notFound => 'That code doesn\'t match an active invite.',
+        ClaimResult.invalidEmail => 'Enter a valid email for witness notices.',
         null => 'Couldn\'t reach the server — check your connection.',
       };
     });
@@ -296,9 +308,8 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
       ),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFF090909),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+          color: BureauTokens.ink,
+          border: Border.all(color: BureauTokens.ruleOnInk),
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -307,7 +318,7 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Someone chose you as their emergency contact.',
+                'Someone designated you as a witness to their record.',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 14,
@@ -337,6 +348,37 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('welcome-witness-email-field'),
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 15,
+                  color: Colors.white,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'WITNESS EMAIL',
+                  helperText: 'Used only for lapse/restoration notices.',
+                  labelStyle: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                  helperStyle: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: 0.45),
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ),
+                ),
+              ),
               if (_message != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -354,10 +396,11 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
                 key: const ValueKey('welcome-invite-code-accept'),
                 onPressed: _submitting ? null : _accept,
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
+                  backgroundColor: BureauTokens.paper,
+                  foregroundColor: BureauTokens.ink,
+                  shape: const RoundedRectangleBorder(),
                 ),
-                child: Text(_submitting ? 'Checking…' : 'Accept'),
+                child: Text(_submitting ? 'CHECKING…' : 'ACCEPT DESIGNATION'),
               ),
             ],
           ),

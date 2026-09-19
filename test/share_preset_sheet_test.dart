@@ -87,7 +87,7 @@ void main() {
     expect(afterBorder.top.color, Colors.white);
     expect(afterBorder.top.width, 2.0);
 
-    await tester.tap(find.text('Continue'));
+    await tester.tap(find.text('CONTINUE'));
     await tester.pump();
 
     expect(find.text('Check-in margin'), findsOneWidget);
