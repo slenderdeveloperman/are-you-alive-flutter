@@ -19,7 +19,7 @@
   <p>Are You Alive? stores your name, filing/check-in timestamps, streak and citation progress, notification state, and app preferences on your device. A local reminder can be scheduled before the 39-hour filing window lapses.</p>
 
   <h2>Designated witness pairing</h2>
-  <p>If you choose to pair a designated witness, the app uses a Neon-hosted backend to exchange an invite code and opaque device identifiers. The pairing service stores the invite state, the paired witness identifier, and limited timestamps needed to maintain that relationship. Contact-book data is used on-device to let you choose a person; the app does not upload your address book.</p>
+  <p>If you choose to pair a designated witness, the app uses a Neon-hosted backend to exchange an invite code and opaque device identifiers. The pairing service stores the invite state, the paired witness identifier, limited timestamps needed to maintain that relationship, and—when remote witness delivery is enabled—the email address the witness enters on their own device for lapse/restoration notices. Contact-book data is used on-device to let you choose a person; the app does not upload your address book or derive the witness email from the inviter's contacts.</p>
 
   <h2>AYA 0.3 watchdog data</h2>
   <p>When the watchdog feature is enabled for a paired record, the backend may store the subject and witness opaque identifiers, the last filing timestamp, the filing deadline, record status, and escalation timestamps. It does not require location data, health records, or emergency-services data.</p>
@@ -29,10 +29,10 @@
   <p>Local reminder permission is requested when the app needs to schedule a filing reminder, rather than automatically at startup. You can disable notifications in system settings. Delivery timing can be affected by operating-system and manufacturer battery restrictions.</p>
 
   <h2>Network requests</h2>
-  <p>The core filing loop remains usable locally. Network access is used for designated-witness pairing and, when enabled, watchdog synchronization. No advertising SDK or behavioral analytics SDK is included in the app.</p>
+  <p>The core filing loop remains usable locally. Network access is used for designated-witness pairing, watchdog synchronization, and—when enabled—transactional witness delivery through an email provider. The provider receives only the delivery address and notice content required to send that operational message. No advertising SDK or behavioral analytics SDK is included in the app.</p>
 
   <h2>Retention and removal</h2>
-  <p>Local data can be removed by clearing the app's data or uninstalling it, subject to platform secure-storage behavior. Backend pairing/watchdog records should be removed when the relationship is deleted or according to the service retention policy. A production 0.3 release must publish the final retention interval before watchdog delivery is enabled.</p>
+  <p>Local data can be removed by clearing the app's data or uninstalling it, subject to platform secure-storage behavior. Removing a designated-witness relationship removes the corresponding pairing/watchdog state, including the witness delivery email. Delivered witness-alert envelopes are retained for up to 30 days for delivery/debugging and are then purged; undelivered operational state is retained only while needed for retry, diagnosis, or relationship cleanup.</p>
 
   <h2>Children</h2>
   <p>The app is not designed as a child-safety or guardian-monitoring service.</p>
