@@ -136,6 +136,10 @@ void main() {
       find.byKey(const ValueKey('welcome-invite-code-field')),
       'AYA-ABC123',
     );
+    await tester.enterText(
+      find.byKey(const ValueKey('welcome-witness-email-field')),
+      'witness@example.com',
+    );
     await tester.tap(find.byKey(const ValueKey('welcome-invite-code-accept')));
     await tester.pump();
 
@@ -165,6 +169,10 @@ void main() {
       find.byKey(const ValueKey('welcome-invite-code-field')),
       'AYA-ZZZZZZ',
     );
+    await tester.enterText(
+      find.byKey(const ValueKey('welcome-witness-email-field')),
+      'witness@example.com',
+    );
     await tester.tap(find.byKey(const ValueKey('welcome-invite-code-accept')));
     await tester.pump();
 
@@ -185,6 +193,10 @@ void main() {
     await tester.enterText(
       find.byKey(const ValueKey('welcome-invite-code-field')),
       'AYA-ABC123',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('welcome-witness-email-field')),
+      'witness@example.com',
     );
     await tester.tap(find.byKey(const ValueKey('welcome-invite-code-accept')));
     await tester.pump();
