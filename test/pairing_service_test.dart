@@ -108,6 +108,19 @@ void main() {
       ),
       ClaimResult.notFound,
     );
+    backend.rpcResults['claim_invite'] = 'invalid_email';
+    expect(
+      await service.claimInvite(
+        code: 'AYA-000000',
+        claimerId: 'b' * 32,
+        deliveryEmail: 'not-an-email',
+      ),
+      ClaimResult.invalidEmail,
+    );
+    expect(
+      backend.capturedBodies.last['p_delivery_email'],
+      'not-an-email',
+    );
   });
 
   test('token is fetched once and cached across calls', () async {
