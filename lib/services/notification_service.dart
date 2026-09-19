@@ -4,6 +4,8 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+
+import '../models/existence_record.dart';
 import '../repositories/notification_repository.dart';
 
 class NotificationService {
@@ -15,107 +17,118 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static const int _notificationId = 1;
-  static const Duration _inactivityDuration = Duration(hours: 30);
+  bool _initialized = false;
 
   Future<void> init() async {
-    // Initialize timezone database
+    if (_initialized) return;
     tz_data.initializeTimeZones();
 
-    // Get the device's actual timezone dynamically (works worldwide)
     try {
       final deviceTimeZone = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(deviceTimeZone));
     } catch (e) {
-      // Fallback to UTC if timezone detection fails
       debugPrint('Failed to get device timezone: $e');
       tz.setLocalLocation(tz.getLocation('UTC'));
     }
 
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwinSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: darwinSettings,
-      macOS: darwinSettings,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     await _notifications.initialize(
-      settings,
+      const InitializationSettings(
+        android: androidSettings,
+        iOS: darwinSettings,
+        macOS: darwinSettings,
+      ),
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
-
-    // Request permissions on Android 13+
-    await _requestPermissions();
+    _initialized = true;
   }
 
-  Future<void> _requestPermissions() async {
-    // Request Android permissions
+  Future<bool> requestPermission() async {
+    await init();
+    var granted = true;
+
     final androidPlugin = _notifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
     if (androidPlugin != null) {
-      await androidPlugin.requestNotificationsPermission();
+      granted = await androidPlugin.requestNotificationsPermission() ?? false;
     }
 
-    // Request iOS permissions
     final iosPlugin = _notifications
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >();
     if (iosPlugin != null) {
-      await iosPlugin.requestPermissions(alert: true, badge: true, sound: true);
+      granted =
+          await iosPlugin.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          ) ??
+          false;
     }
+    return granted;
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    // Reschedule notification when user taps it
-    scheduleInactivityNotification();
+    // Opening the app must not mutate the filing timestamp. The next filing
+    // action is the only thing allowed to move the 39-hour deadline.
   }
 
-  Future<void> scheduleInactivityNotification() async {
-    // Save timestamp FIRST - countdown should work even if notifications fail
+  /// Schedule the 30-hour local reminder relative to the canonical filing
+  /// timestamp. This method never resets the filing timestamp itself.
+  Future<bool> scheduleInactivityNotification({DateTime? from}) async {
+    await init();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(
-      'lastActiveTimestamp',
-      DateTime.now().millisecondsSinceEpoch,
-    );
+    DateTime? checkIn = from;
+    final stored = prefs.getInt('lastActiveTimestamp');
+    checkIn ??=
+        stored == null ? null : DateTime.fromMillisecondsSinceEpoch(stored);
+    if (checkIn == null) return false;
 
-    var body = 'Open now to read your eulogy';
+    final granted = await requestPermission();
+    if (!granted) {
+      await prefs.setBool('notificationsEnabled', false);
+      return false;
+    }
+    await prefs.setBool('notificationsEnabled', true);
+
+    var body =
+        'No filing received for 30 hours. Continued existence requires confirmation.';
     try {
       body = await NotificationRepository().nextThirtyHourMessage();
     } catch (e) {
-      debugPrint('Failed to load shuffled notification message: $e');
+      debugPrint('Failed to load notification message: $e');
     }
 
-    // Try to schedule notification (may fail due to permissions)
     try {
-      // Cancel any existing notification
       await _notifications.cancel(_notificationId);
-
-      // Schedule new notification
-      final scheduledTime = tz.TZDateTime.now(
+      final scheduledTime = tz.TZDateTime.from(
+        checkIn.add(ExistenceRecord.reminderAt),
         tz.local,
-      ).add(_inactivityDuration);
+      );
+
+      if (!scheduledTime.isAfter(tz.TZDateTime.now(tz.local))) {
+        return false;
+      }
 
       await _notifications.zonedSchedule(
         _notificationId,
-        'ARE YOU ALIVE?',
+        'F.C.C.D.B. / EXISTENCE REGISTER',
         body,
         scheduledTime,
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'inactivity_channel',
-            'Inactivity Notifications',
-            channelDescription:
-                'Notifications when you have not opened the app',
+            'Existence register reminders',
+            channelDescription: 'Reminders before your filing window lapses',
             importance: Importance.high,
             priority: Priority.high,
           ),
@@ -134,11 +147,15 @@ class NotificationService {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
+      return true;
     } catch (e) {
-      // Notification scheduling failed (permissions, etc.)
-      // The countdown timer will still work since we saved the timestamp above
       debugPrint('Failed to schedule notification: $e');
+      return false;
     }
+  }
+
+  Future<void> reconcileFromStoredFiling() async {
+    await scheduleInactivityNotification();
   }
 
   Future<void> cancelNotification() async {
