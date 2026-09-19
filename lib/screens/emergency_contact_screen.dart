@@ -199,7 +199,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'emergency contact',
+          'designated contact',
           style: TextStyle(
             fontFamily: 'monospace',
             letterSpacing: 2,
@@ -243,8 +243,9 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Pick one person.\n\nIf you ever go silent past your window, '
-          'they\'re the one who gets told.',
+          'Pick one person to pair with your record.\n\n'
+          'Pairing confirms who you trust; automatic missed-deadline '
+          'alerts are not active yet.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'monospace',
@@ -256,7 +257,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         const Spacer(),
         _primaryButton(
           key: const ValueKey('emergency-choose-button'),
-          label: 'CHOOSE SOMEONE',
+          label: 'DESIGNATE CONTACT',
           onPressed: _chooseContact,
         ),
       ],
