@@ -121,13 +121,17 @@ begin
     where o.id = c.id
     returning o.id, o.kind, o.subject_id, o.witness_id, o.attempt_count
   )
-  select l.id, l.kind, l.subject_id, l.witness_id, i.delivery_email, l.attempt_count
+  select l.id, l.kind, l.subject_id, l.witness_id, witness.delivery_email, l.attempt_count
   from leased l
-  join invites i
-    on i.inviter_id = l.subject_id
-   and i.claimer_id = l.witness_id
-   and i.claimed_at is not null
-   and i.delivery_email is not null;
+  left join lateral (
+    select i.delivery_email
+    from invites i
+    where i.inviter_id = l.subject_id
+      and i.claimer_id = l.witness_id
+      and i.claimed_at is not null
+    order by i.claimed_at desc
+    limit 1
+  ) witness on true;
 end;
 $$;
 
