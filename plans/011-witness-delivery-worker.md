@@ -130,7 +130,7 @@ Environment variables:
 
 0.3.0 may claim automatic witness delivery only after all of the following are true:
 
-- [ ] migrations 002–008 applied to production Neon in order
+- [ ] migrations 002–009 applied to production Neon in order
 - [ ] external scheduler configured
 - [ ] Resend sending domain/from-address verified
 - [ ] production secrets installed

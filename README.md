@@ -77,7 +77,7 @@ allowance. Production email is configured through Resend for
 provide a second-region failover automatically.
 
 To apply the schema, provision the out-of-band `aya_worker` login role, then
-run migrations `001` through `008` in lexical order:
+run migrations `001` through `009` in lexical order:
 
 ```bash
 AYA_DATABASE_URL="$(npx -y neon@latest connection-string --project-id <project-id> --role-name neondb_owner)"

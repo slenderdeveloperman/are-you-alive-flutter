@@ -11,6 +11,8 @@
   Vercel only hosts the authenticated endpoint.
 - Production Resend delivery is configured for the verified
   `alerts.indica.slenderscape.com` sending domain in `sa-east-1`.
+- The worker role now has the narrow SELECT grants required for signed webhook
+  state transitions.
 - Shareable register extracts now include a compact F.C.C.D.B. filing stamp
   carrying the file, status, and revision fields.
 - Extract text now fits horizontally as well as vertically, truncating only
