@@ -21,6 +21,7 @@ class RecordingPairingService extends PairingService {
   Future<bool?> createInvite({
     required String code,
     required String inviterId,
+    required String inviterCapability,
   }) async {
     createdCodes.add(code);
     return createResult;

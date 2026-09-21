@@ -2,6 +2,11 @@
 
 ## Unreleased (AYA 0.3)
 
+- Watchdog refresh and pairing revocation now require a subject-owned secure
+  capability; Neon stores only its digest, while pre-0.3 claimed pairings can
+  be upgraded when the subject next registers them.
+- Witness-worker delivery orchestration now has executable contract tests for
+  successful, retryable, terminal, and missing-email jobs.
 - Shareable register extracts now include a compact F.C.C.D.B. filing stamp
   carrying the file, status, and revision fields.
 - Extract text now fits horizontally as well as vertically, truncating only

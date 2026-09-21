@@ -54,14 +54,14 @@ class EmergencyContactService {
   EmergencyContactService({SecureKV? storage, String? Function()? regionCode})
     : _storage = storage ?? const SecureStorageKV(),
       _regionCode =
-          regionCode ??
-          (() => PlatformDispatcher.instance.locale.countryCode);
+          regionCode ?? (() => PlatformDispatcher.instance.locale.countryCode);
 
   final SecureKV _storage;
   final String? Function() _regionCode;
 
   static const String _stateKey = 'emergency.contact.stateJson';
   static const String _deviceIdKey = 'device.uuid';
+  static const String _capabilityKey = 'device.watchdogCapability';
 
   static const String _playStoreUrl =
       'https://play.google.com/store/apps/details'
@@ -99,6 +99,23 @@ class EmergencyContactService {
     ).join();
     await _storage.write(_deviceIdKey, id);
     return id;
+  }
+
+  /// Subject-owned capability for watchdog RPCs. The value is generated once
+  /// and kept in secure storage; Neon stores only its digest.
+  Future<String> getOrCreateWatchdogCapability() async {
+    final existing = await _storage.read(_capabilityKey);
+    if (existing != null && RegExp(r'^[0-9a-f]{64}$').hasMatch(existing)) {
+      return existing;
+    }
+
+    final random = Random.secure();
+    final capability = List.generate(
+      64,
+      (_) => '0123456789abcdef'[random.nextInt(16)],
+    ).join();
+    await _storage.write(_capabilityKey, capability);
+    return capability;
   }
 
   String generatePairingCode() {

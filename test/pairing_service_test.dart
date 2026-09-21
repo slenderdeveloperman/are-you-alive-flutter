@@ -49,18 +49,24 @@ void main() {
     final result = await service.createInvite(
       code: 'AYA-7F3K2M',
       inviterId: 'a' * 32,
+      inviterCapability: 'b' * 64,
     );
 
     expect(result, isTrue);
     expect(backend.capturedBodies.single['p_code'], 'AYA-7F3K2M');
     expect(backend.capturedBodies.single['p_inviter_id'], 'a' * 32);
+    expect(backend.capturedBodies.single['p_inviter_capability'], 'b' * 64);
   });
 
   test('createInvite returns false on backend rejection', () async {
     final backend = _Backend()..rpcResults['create_invite'] = false;
     final service = PairingService(client: backend.client);
     expect(
-      await service.createInvite(code: 'AYA-XXXXXX', inviterId: 'a' * 32),
+      await service.createInvite(
+        code: 'AYA-XXXXXX',
+        inviterId: 'a' * 32,
+        inviterCapability: 'b' * 64,
+      ),
       isFalse,
     );
   });
@@ -117,10 +123,7 @@ void main() {
       ),
       ClaimResult.invalidEmail,
     );
-    expect(
-      backend.capturedBodies.last['p_delivery_email'],
-      'not-an-email',
-    );
+    expect(backend.capturedBodies.last['p_delivery_email'], 'not-an-email');
   });
 
   test('token is fetched once and cached across calls', () async {
@@ -168,7 +171,11 @@ void main() {
     final service = PairingService(client: throwing);
 
     expect(
-      await service.createInvite(code: 'AYA-000000', inviterId: 'a' * 32),
+      await service.createInvite(
+        code: 'AYA-000000',
+        inviterId: 'a' * 32,
+        inviterCapability: 'b' * 64,
+      ),
       isNull,
     );
     expect(await service.getInviteStatus('AYA-000000'), isNull);

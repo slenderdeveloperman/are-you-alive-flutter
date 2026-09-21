@@ -7,7 +7,7 @@ export type LeasedAlert = {
   kind: AlertKind;
   subject_id: string;
   witness_id: string;
-  delivery_email: string;
+  delivery_email: string | null;
   attempt_count: number;
 };
 

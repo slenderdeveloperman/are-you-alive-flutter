@@ -35,10 +35,12 @@ The only networked feature is emergency-contact pairing:
 
 - **Backend**: Neon Postgres + Data API (project `ARE-YOU-ALIVE`,
   aws-ap-southeast-1). Schema and access model live in
-  [`backend/neon/001_invites.sql`](backend/neon/001_invites.sql) — a single
-  `invites` table reachable only through three `SECURITY DEFINER` RPCs
-  (`create_invite`, `claim_invite`, `get_invite_status`). The API's
-  `anonymous` role has EXECUTE on those functions and nothing else.
+  [`backend/neon/`](backend/neon/) — the `invites`, `watchdogs`, and
+  `witness_alert_outbox` tables are reachable only through narrowly scoped
+  `SECURITY DEFINER` RPCs. The API's `anonymous` role has no table access.
+  Subject-owned watchdog RPCs additionally require a 256-bit capability kept
+  in secure storage on the subject device; Neon stores only its SHA-256 digest
+  (`007_watchdog_capability.sql`).
 - **Client**: `lib/services/pairing_service.dart` mints short-lived
   anonymous JWTs from the Neon Auth token endpoint, caches them, and
   refreshes on 401. Network failures surface as `null`, distinct from the
@@ -59,11 +61,20 @@ The only networked feature is emergency-contact pairing:
   exists" (which resets local state instead of leaving a stale pending
   card forever).
 
-To re-apply the schema:
+The witness delivery worker lives in
+[`backend/witness-worker/`](backend/witness-worker/). It leases outbox rows,
+sends idempotent Resend messages, and consumes signed delivery webhooks. Run
+its contract tests with `npm test` and typecheck with `npm run typecheck` from
+that directory. Production activation still requires the Neon migrations,
+provider configuration, scheduler, and offline-subject end-to-end test.
+
+To apply the schema, run migrations `001` through `007` in lexical order:
 
 ```bash
-psql "$(npx -y neon@latest connection-string --project-id <project-id> --role-name neondb_owner)" \
-  -f backend/neon/001_invites.sql
+AYA_DATABASE_URL="$(npx -y neon@latest connection-string --project-id <project-id> --role-name neondb_owner)"
+for migration in backend/neon/*.sql; do
+  psql "$AYA_DATABASE_URL" -f "$migration"
+done
 ```
 
 ## Development

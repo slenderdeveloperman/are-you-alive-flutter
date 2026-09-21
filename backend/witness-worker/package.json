@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --experimental-strip-types --test src/worker.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

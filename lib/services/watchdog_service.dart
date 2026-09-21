@@ -15,6 +15,7 @@ class WatchdogService {
 
   Future<WatchdogSyncResult> syncCheckIn({
     required String subjectId,
+    required String subjectCapability,
     required DateTime checkedInAt,
   }) async {
     try {
@@ -38,6 +39,7 @@ class WatchdogService {
             },
             body: jsonEncode(<String, Object>{
               'p_subject_id': subjectId,
+              'p_subject_capability': subjectCapability,
               'p_checked_in_at': checkedInAt.toUtc().toIso8601String(),
               'p_deadline_at': checkedInAt
                   .add(ExistenceRecord.filingWindow)

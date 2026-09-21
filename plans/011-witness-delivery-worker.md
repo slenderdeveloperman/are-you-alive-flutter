@@ -1,6 +1,6 @@
 # AYA 0.3 — Witness Delivery Worker
 
-Status: IMPLEMENTATION STARTED
+Status: IMPLEMENTATION COMPLETE / EXTERNAL ACTIVATION GATED
 Branch: `feat/aya-0.3`
 Archive: `FLD-AYA-01`
 
@@ -75,6 +75,11 @@ Retry policy:
 
 The worker is at-least-once by design. Duplicate worker invocation must be harmless.
 
+The bounded delivery pass is covered by executable contract tests for successful
+submission, retryable provider failure, terminal provider failure, and missing
+witness email. These tests do not call Resend or Neon; the release gate still
+requires one staging end-to-end run against the configured provider and database.
+
 ## Message families
 
 ### record_lapsed
@@ -125,7 +130,7 @@ Environment variables:
 
 0.3.0 may claim automatic witness delivery only after all of the following are true:
 
-- [ ] migration 005 applied to production Neon
+- [ ] migrations 002–007 applied to production Neon in order
 - [ ] external scheduler configured
 - [ ] Resend sending domain/from-address verified
 - [ ] production secrets installed

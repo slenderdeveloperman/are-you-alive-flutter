@@ -42,7 +42,9 @@ void main() {
 
     test('codes are not repeated in a small sample', () {
       final service = _service();
-      final codes = {for (var i = 0; i < 100; i++) service.generatePairingCode()};
+      final codes = {
+        for (var i = 0; i < 100; i++) service.generatePairingCode(),
+      };
       expect(codes.length, 100);
     });
   });
@@ -58,8 +60,10 @@ void main() {
       expect(message, contains('&referrer=AYA-7F3K2M'));
       expect(
         message,
-        contains('play.google.com/store/apps/details'
-            '?id=com.areyoualive.are_you_alive_flutter'),
+        contains(
+          'play.google.com/store/apps/details'
+          '?id=com.areyoualive.are_you_alive_flutter',
+        ),
       );
     });
 
@@ -85,7 +89,10 @@ void main() {
 
     test('already-international number keeps its own country', () {
       final service = _service();
-      expect(service.normalizeToWhatsAppDigits('+1 415 555 2671'), '14155552671');
+      expect(
+        service.normalizeToWhatsAppDigits('+1 415 555 2671'),
+        '14155552671',
+      );
     });
 
     test('garbage and empty input return null, never throw', () {
@@ -161,6 +168,19 @@ void main() {
       expect(first, hasLength(32));
       expect(second, first);
     });
+
+    test('watchdog capability is generated once and reused', () async {
+      final kv = InMemoryKV();
+      final service = EmergencyContactService(
+        storage: kv,
+        regionCode: () => 'IN',
+      );
+      final first = await service.getOrCreateWatchdogCapability();
+      final second = await service.getOrCreateWatchdogCapability();
+      expect(first, hasLength(64));
+      expect(first, matches(RegExp(r'^[0-9a-f]{64}$')));
+      expect(second, first);
+    });
   });
 
   group('syncStatus (Phase D)', () {
@@ -210,14 +230,17 @@ void main() {
       expect(saved!.status, PairingStatus.pending);
     });
 
-    test('a network failure (null) leaves pending state untouched, never resets', () async {
-      final service = await pendingService();
-      final outcome = await service.syncStatus(FakePairingService(null));
+    test(
+      'a network failure (null) leaves pending state untouched, never resets',
+      () async {
+        final service = await pendingService();
+        final outcome = await service.syncStatus(FakePairingService(null));
 
-      expect(outcome, SyncOutcome.unchanged);
-      final saved = await service.load();
-      expect(saved!.status, PairingStatus.pending);
-    });
+        expect(outcome, SyncOutcome.unchanged);
+        final saved = await service.load();
+        expect(saved!.status, PairingStatus.pending);
+      },
+    );
 
     test('no local state is a no-op', () async {
       final service = _service();

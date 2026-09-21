@@ -128,7 +128,8 @@ class _HomeScreenState extends State<HomeScreen>
   /// contact invite has since been claimed or expired. Fire-and-forget —
   /// never blocks the home screen on the network.
   Future<void> _syncEmergencyContact() async {
-    final service = widget._emergencyContactService ?? EmergencyContactService();
+    final service =
+        widget._emergencyContactService ?? EmergencyContactService();
     final before = await service.load();
     if (before == null || before.status != PairingStatus.pending) return;
 
@@ -327,8 +328,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _scheduleNotification({DateTime? from}) async {
-    final enabled =
-        await NotificationService().scheduleInactivityNotification(from: from);
+    final enabled = await NotificationService().scheduleInactivityNotification(
+      from: from,
+    );
     if (!mounted) return;
     setState(() {
       _notificationsEnabled = enabled;
@@ -345,8 +347,19 @@ class _HomeScreenState extends State<HomeScreen>
     if (contact == null || contact.status != PairingStatus.confirmed) return;
 
     final subjectId = await contactService.getOrCreateDeviceId();
+    final subjectCapability = await contactService
+        .getOrCreateWatchdogCapability();
+    // This also upgrades pre-0.3 claimed pairings with the new capability
+    // before the first protected watchdog refresh.
+    final pairing = widget._pairingService ?? PairingService();
+    await pairing.createInvite(
+      code: contact.pairingCode,
+      inviterId: subjectId,
+      inviterCapability: subjectCapability,
+    );
     await WatchdogService().syncCheckIn(
       subjectId: subjectId,
+      subjectCapability: subjectCapability,
       checkedInAt: checkedInAt,
     );
   }
@@ -575,10 +588,8 @@ class _HomeScreenState extends State<HomeScreen>
     if (snapshot == null) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => BadgesScreen(
-          snapshot: snapshot,
-          nowProvider: widget._nowProvider,
-        ),
+        builder: (_) =>
+            BadgesScreen(snapshot: snapshot, nowProvider: widget._nowProvider),
       ),
     );
   }
@@ -755,7 +766,8 @@ class _HomeScreenState extends State<HomeScreen>
     // Reduced motion: keep the erratic *timing* (still communicates urgency)
     // but dampen the extra scale swing to a barely-there range.
     final scaleMultiplier = reducedMotion
-        ? 0.98 + (_random.nextDouble() * 0.02) // 0.98-1.00
+        ? 0.98 +
+              (_random.nextDouble() * 0.02) // 0.98-1.00
         : 0.92 + (_random.nextDouble() * 0.10); // 0.92-1.02
 
     if (immediate) {
@@ -875,7 +887,10 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         const SizedBox(height: 12),
                         TweenAnimationBuilder<int>(
-                          tween: IntTween(begin: _previousStreak, end: _streakCount),
+                          tween: IntTween(
+                            begin: _previousStreak,
+                            end: _streakCount,
+                          ),
                           duration: MotionTokens.celebrationDuration,
                           curve: MotionTokens.easeOutStrong,
                           builder: (context, value, child) {
@@ -894,7 +909,9 @@ class _HomeScreenState extends State<HomeScreen>
                                     style: TextStyle(
                                       fontFamily: 'monospace',
                                       fontSize: 14,
-                                      color: Colors.white.withValues(alpha: 0.74),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.74,
+                                      ),
                                       letterSpacing: 0.4,
                                     ),
                                   ),
@@ -956,11 +973,12 @@ class _HomeScreenState extends State<HomeScreen>
                                           ),
                                           child: Text(
                                             "I'M ALIVE",
-                                            style: BureauTokens.filingLabel.copyWith(
-                                              fontSize: 14,
-                                              letterSpacing: 2.2,
-                                              color: BureauTokens.ink,
-                                            ),
+                                            style: BureauTokens.filingLabel
+                                                .copyWith(
+                                                  fontSize: 14,
+                                                  letterSpacing: 2.2,
+                                                  color: BureauTokens.ink,
+                                                ),
                                           ),
                                         ),
                                       ),

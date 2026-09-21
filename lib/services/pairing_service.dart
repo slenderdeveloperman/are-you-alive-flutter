@@ -32,10 +32,12 @@ class PairingService {
   Future<bool?> createInvite({
     required String code,
     required String inviterId,
+    required String inviterCapability,
   }) async {
     final result = await _rpc('create_invite', <String, String>{
       'p_code': code,
       'p_inviter_id': inviterId,
+      'p_inviter_capability': inviterCapability,
     });
     if (result == null) return null;
     return result == true;
@@ -90,10 +92,12 @@ class PairingService {
   Future<bool?> revokePairing({
     required String code,
     required String inviterId,
+    required String inviterCapability,
   }) async {
     final result = await _rpc('revoke_pairing', <String, String>{
       'p_code': code,
       'p_inviter_id': inviterId,
+      'p_inviter_capability': inviterCapability,
     });
     if (result == null) return null;
     return result == true;

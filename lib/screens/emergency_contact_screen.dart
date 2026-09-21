@@ -58,9 +58,11 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   /// the next nudge tap retries.
   Future<void> _registerInvite(EmergencyContactState state) async {
     final deviceId = await _service.getOrCreateDeviceId();
+    final capability = await _service.getOrCreateWatchdogCapability();
     final created = await _pairingService.createInvite(
       code: state.pairingCode,
       inviterId: deviceId,
+      inviterCapability: capability,
     );
     if (created != false) return;
 
@@ -79,6 +81,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     await _pairingService.createInvite(
       code: regenerated.pairingCode,
       inviterId: deviceId,
+      inviterCapability: capability,
     );
   }
 
@@ -180,12 +183,14 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     final state = _state;
     if (state != null) {
       final deviceId = await _service.getOrCreateDeviceId();
+      final capability = await _service.getOrCreateWatchdogCapability();
       // Server revocation is best-effort so an offline subject can still
       // remove the local relationship immediately. A later server cleanup
       // remains an operational concern if this call cannot reach Neon.
       await _pairingService.revokePairing(
         code: state.pairingCode,
         inviterId: deviceId,
+        inviterCapability: capability,
       );
     }
     await _service.clear();
@@ -354,7 +359,11 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Spacer(),
-        const Icon(Icons.verified_outlined, size: 56, color: BureauTokens.active),
+        const Icon(
+          Icons.verified_outlined,
+          size: 56,
+          color: BureauTokens.active,
+        ),
         const SizedBox(height: 24),
         Text(
           '${state.name} / WITNESS CONFIRMED',
