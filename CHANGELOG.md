@@ -9,6 +9,8 @@
   successful, retryable, terminal, and missing-email jobs.
 - The witness worker now uses a GitHub Actions five-minute external scheduler;
   Vercel only hosts the authenticated endpoint.
+- Production Resend delivery is configured for the verified
+  `alerts.indica.slenderscape.com` sending domain in `sa-east-1`.
 - Shareable register extracts now include a compact F.C.C.D.B. filing stamp
   carrying the file, status, and revision fields.
 - Extract text now fits horizontally as well as vertically, truncating only

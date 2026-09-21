@@ -6,6 +6,7 @@ Stateless delivery worker for FLD-AYA-01.
 
 - DATABASE_URL
 - RESEND_API_KEY
+- RESEND_EMAIL_DOMAIN
 - RESEND_FROM_EMAIL
 - WORKER_SECRET
 - CRON_SECRET (used by the external scheduler)
@@ -23,6 +24,10 @@ Vercel. GitHub schedules are best-effort, so the worker remains idempotent and
 safe if a run is delayed or retried.
 
 Configure Resend to send delivery webhooks to `/api/resend-webhook`.
+The production Resend resource is `alerts.indica.slenderscape.com` in
+`sa-east-1`; the Vercel integration exposes one resource region, so
+`eu-west-1` is not an automatic failover without a separate provider resource
+and worker failover implementation.
 
 The worker must not be activated until `backend/neon/005_witness_delivery.sql`
 has been applied.

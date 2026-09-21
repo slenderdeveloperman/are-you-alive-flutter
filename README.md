@@ -72,7 +72,9 @@ and the offline-subject end-to-end test. The scheduler uses the public
 repository's standard GitHub-hosted runner; if the repository becomes private,
 the five-minute cadence would consume about 8,640 rounded runner minutes per
 30-day month before other workflows, exceeding GitHub Free's 2,000-minute
-allowance.
+allowance. Production email is configured through Resend for
+`alerts.indica.slenderscape.com` in `sa-east-1`; Vercel's integration does not
+provide a second-region failover automatically.
 
 To apply the schema, provision the out-of-band `aya_worker` login role, then
 run migrations `001` through `008` in lexical order:
