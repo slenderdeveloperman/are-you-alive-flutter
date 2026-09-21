@@ -7,6 +7,8 @@
   be upgraded when the subject next registers them.
 - Witness-worker delivery orchestration now has executable contract tests for
   successful, retryable, terminal, and missing-email jobs.
+- The witness worker now uses a GitHub Actions five-minute external scheduler;
+  Vercel only hosts the authenticated endpoint.
 - Shareable register extracts now include a compact F.C.C.D.B. filing stamp
   carrying the file, status, and revision fields.
 - Extract text now fits horizontally as well as vertically, truncating only

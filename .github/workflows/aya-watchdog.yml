@@ -1,0 +1,30 @@
+name: AYA Watchdog
+
+on:
+  schedule:
+    # GitHub Actions has a five-minute minimum for scheduled workflows.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: aya-watchdog
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  invoke-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Invoke witness worker
+        env:
+          WORKER_URL: ${{ secrets.AYA_WORKER_URL }}
+          WORKER_SECRET: ${{ secrets.AYA_WORKER_SECRET }}
+        run: |
+          test -n "$WORKER_URL"
+          test -n "$WORKER_SECRET"
+          curl --fail-with-body --silent --show-error --max-time 30 \
+            -X POST "$WORKER_URL/api/worker" \
+            -H "Authorization: Bearer $WORKER_SECRET" \
+            -H "Accept: application/json"

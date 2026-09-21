@@ -66,7 +66,13 @@ The witness delivery worker lives in
 sends idempotent Resend messages, and consumes signed delivery webhooks. Run
 its contract tests with `npm test` and typecheck with `npm run typecheck` from
 that directory. Production activation still requires the Neon migrations,
-provider configuration, scheduler, and offline-subject end-to-end test.
+provider configuration, the GitHub Actions scheduler in
+[`.github/workflows/aya-watchdog.yml`](.github/workflows/aya-watchdog.yml),
+and the offline-subject end-to-end test. The scheduler uses the public
+repository's standard GitHub-hosted runner; if the repository becomes private,
+the five-minute cadence would consume about 8,640 rounded runner minutes per
+30-day month before other workflows, exceeding GitHub Free's 2,000-minute
+allowance.
 
 To apply the schema, provision the out-of-band `aya_worker` login role, then
 run migrations `001` through `008` in lexical order:

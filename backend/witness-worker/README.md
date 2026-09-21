@@ -8,13 +8,19 @@ Stateless delivery worker for FLD-AYA-01.
 - RESEND_API_KEY
 - RESEND_FROM_EMAIL
 - WORKER_SECRET
-- CRON_SECRET (when using Vercel Cron)
+- CRON_SECRET (used by the external scheduler)
 - RESEND_WEBHOOK_SECRET
 
-Vercel Cron calls `/api/worker` every five minutes from `vercel.json`. For a
-manual or external scheduler, call the endpoint with:
+The production scheduler is the GitHub Actions workflow in
+`.github/workflows/aya-watchdog.yml`. It calls `/api/worker` every five
+minutes with:
 
-`Authorization: Bearer $WORKER_SECRET`
+`Authorization: Bearer $CRON_SECRET`
+
+Set the GitHub Actions secrets `AYA_WORKER_URL` to the deployed worker base
+URL and `AYA_WORKER_SECRET` to the value configured as `WORKER_SECRET` in
+Vercel. GitHub schedules are best-effort, so the worker remains idempotent and
+safe if a run is delayed or retried.
 
 Configure Resend to send delivery webhooks to `/api/resend-webhook`.
 
