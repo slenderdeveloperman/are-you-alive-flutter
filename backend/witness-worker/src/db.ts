@@ -19,6 +19,7 @@ function sql() {
 
 export async function evaluateAndLease(limit = 25): Promise<LeasedAlert[]> {
   const query = sql();
+  await query`select public.purge_delivered_alerts()`;
   await query`select public.evaluate_watchdogs()`;
   const rows = await query`select * from public.claim_witness_alerts(${limit})`;
   return rows as unknown as LeasedAlert[];

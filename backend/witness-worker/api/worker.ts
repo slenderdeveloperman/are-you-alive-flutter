@@ -4,7 +4,9 @@ import { sendWitnessEmail } from '../src/resend.js';
 import { processWitnessAlerts } from '../src/worker.js';
 
 function authorized(req: VercelRequest) {
-  const secret = process.env.WORKER_SECRET;
+  // Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. WORKER_SECRET
+  // remains available for manual/external scheduler invocations.
+  const secret = process.env.WORKER_SECRET ?? process.env.CRON_SECRET;
   return Boolean(secret) && req.headers.authorization === `Bearer ${secret}`;
 }
 

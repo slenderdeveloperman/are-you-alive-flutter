@@ -8,9 +8,11 @@ Stateless delivery worker for FLD-AYA-01.
 - RESEND_API_KEY
 - RESEND_FROM_EMAIL
 - WORKER_SECRET
+- CRON_SECRET (when using Vercel Cron)
 - RESEND_WEBHOOK_SECRET
 
-The scheduler calls `/api/worker` every ~5 minutes with:
+Vercel Cron calls `/api/worker` every five minutes from `vercel.json`. For a
+manual or external scheduler, call the endpoint with:
 
 `Authorization: Bearer $WORKER_SECRET`
 

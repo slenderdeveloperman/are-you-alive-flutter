@@ -1,51 +1,30 @@
 -- AYA 0.3 / FLD-AYA-01
--- Database-local watchdog scheduling and retention.
+-- External watchdog scheduling and retention.
 --
--- Neon supports pg_cron. This evaluator is intentionally database-local:
--- it can mark records overdue and enqueue a witness alert without depending
--- on the subject phone or an application server.
---
--- Outbound delivery remains a separate worker/provider concern. Do not
--- represent witness alerts as operational until that consumer is deployed.
+-- Neon projects may expose pg_cron but only from the database configured as
+-- cron.database_name. The AYA database is `neondb`, and production scheduling
+-- is therefore owned by Vercel Cron (`backend/witness-worker/vercel.json`).
+-- Keep the retention operation as a SECURITY DEFINER function so the worker
+-- can perform it without direct table ownership.
 
-create extension if not exists pg_cron;
-
--- Idempotent migration: remove an older copy of our named jobs if present.
-do $$
+create or replace function public.purge_delivered_alerts()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
 declare
-  v_job record;
+  v_count integer := 0;
 begin
-  for v_job in
-    select jobid
-    from cron.job
-    where jobname in ('aya_watchdog_evaluator', 'aya_watchdog_retention')
-  loop
-    perform cron.unschedule(v_job.jobid);
-  end loop;
+  delete from witness_alert_outbox
+  where delivered_at is not null
+    and delivered_at < now() - interval '30 days';
+  get diagnostics v_count = row_count;
+  return v_count;
 end;
 $$;
 
-select cron.schedule(
-  'aya_watchdog_evaluator',
-  '*/15 * * * *',
-  $$select public.evaluate_watchdogs();$$
-);
+revoke all on function public.purge_delivered_alerts() from public;
 
--- Delivered alert envelopes are operational metadata, not a permanent archive.
--- Keep 30 days for delivery/debugging, then remove them.
-select cron.schedule(
-  'aya_watchdog_retention',
-  '17 3 * * *',
-  $$delete from public.witness_alert_outbox
-    where delivered_at is not null
-      and delivered_at < now() - interval '30 days';$$
-);
-
--- Operational inspection:
--- select jobname, schedule, active from cron.job
--- where jobname like 'aya_watchdog_%';
---
--- select status, return_message, start_time, end_time
--- from cron.job_run_details
--- order by start_time desc
--- limit 20;
+comment on function public.purge_delivered_alerts() is
+  'AYA worker-only retention of delivered witness-alert envelopes older than 30 days.';

@@ -68,7 +68,8 @@ its contract tests with `npm test` and typecheck with `npm run typecheck` from
 that directory. Production activation still requires the Neon migrations,
 provider configuration, scheduler, and offline-subject end-to-end test.
 
-To apply the schema, run migrations `001` through `007` in lexical order:
+To apply the schema, provision the out-of-band `aya_worker` login role, then
+run migrations `001` through `008` in lexical order:
 
 ```bash
 AYA_DATABASE_URL="$(npx -y neon@latest connection-string --project-id <project-id> --role-name neondb_owner)"
